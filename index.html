@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>關鍵一問｜MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>關鍵一問</h1>
+    <p class="subtitle">只有答案真的會改變結果時，才打斷使用者。</p>
+  </header>
+
+  <main id="app">
+
+    <!-- 畫面 1：任務輸入 -->
+    <section id="screen-1" class="screen active" style="display: block;">
+      <h2>1. 任務輸入</h2>
+
+      <label>快速套用測試案例（可直接點選，或自行修改下方欄位）</label>
+      <div id="case-selector" class="case-buttons"></div>
+
+      <label for="task-input">A. 你希望 AI 完成什麼？</label>
+      <textarea id="task-input" rows="2">幫我做好新品提案，等等寄給代理商。</textarea>
+
+      <label for="context-input">B. 背景資訊（直接貼文字即可）</label>
+      <textarea id="context-input" rows="6">1. 會議紀錄：本季主要目標是舊客回購，不考慮 KOL。
+2. 舊版 brief：預算最高 30 萬，TA 為 18–24 歲。
+3. 最新團隊訊息：主管今天提到 micro influencer 似乎可以測試看看。</textarea>
+
+      <button id="btn-start-check">開始預檢</button>
+      <p class="hint-text">（欄位已預填案例 C 的內容，可直接按「開始預檢」測試，或先點上方案例按鈕切換其他情境）</p>
+    </section>
+
+    <!-- 畫面 2：工作預檢 / 關鍵一問 -->
+    <section id="screen-2" class="screen" style="display: none;">
+      <h2>2. 工作預檢</h2>
+
+      <div class="panel">
+        <h3>已確認資訊</h3>
+        <ul id="confirmed-list"></ul>
+      </div>
+
+      <div class="panel">
+        <h3>不確定事項</h3>
+        <ul id="uncertainty-list"></ul>
+      </div>
+
+      <!-- 有關鍵問題時顯示 -->
+      <div id="critical-question-panel" class="hero-panel hidden">
+        <p class="hero-label">關鍵一問</p>
+        <p id="critical-question-text" class="hero-question"></p>
+        <p id="critical-question-reason" class="hero-reason"></p>
+        <!-- 選項按鈕由 app.js 依照資料動態產生，不寫死在 HTML 裡 -->
+        <div id="critical-question-options" class="option-buttons"></div>
+      </div>
+
+      <!-- 不需要澄清時顯示 -->
+      <div id="no-clarification-panel" class="panel hidden">
+        <p>所有不確定事項影響程度都低於門檻，不需要打斷你，直接建立工作契約。</p>
+        <button id="btn-skip-question">建立工作契約</button>
+      </div>
+    </section>
+
+    <!-- 畫面 3：工作契約 -->
+    <section id="screen-3" class="screen" style="display: none;">
+      <h2>3. 工作契約</h2>
+      <div class="panel">
+        <ul id="contract-list"></ul>
+        <p class="ready-label">準備完成 ✓</p>
+      </div>
+      <button id="btn-execute">開始執行</button>
+    </section>
+
+    <!-- 畫面 4：成果 + 驗證 -->
+    <section id="screen-4" class="screen" style="display: none;">
+      <h2>4. 成果與驗證</h2>
+      <div class="result-grid">
+        <div class="panel">
+          <h3>AI 生成成果</h3>
+          <pre id="result-text"></pre>
+        </div>
+        <div class="panel">
+          <h3>執行檢查</h3>
+          <ul id="verification-list"></ul>
+          <p id="verification-score" class="score-label"></p>
+        </div>
+      </div>
+      <p class="mock-notice">
+        目前為 Mock 展示版：分析結果、契約與驗證皆為預先寫好的示範資料，
+        用來展示完整的「理解 → 澄清 → 執行 → 驗證」流程；
+        接上真實 AI API 後，這裡的內容將依實際輸入即時產生。
+      </p>
+      <button id="btn-restart">重新開始</button>
+    </section>
+
+  </main>
+
+  <!-- 載入順序很重要：mock-data → ai-service → app -->
+  <script src="mock-data.js"></script>
+  <script src="ai-service.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

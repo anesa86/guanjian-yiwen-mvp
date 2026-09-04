@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>關鍵一問｜MVP</title>
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, "Segoe UI", "PingFang TC", "Microsoft JhengHei", sans-serif;
+  background: #f6f7f9;
+  color: #222;
+  margin: 0;
+  padding: 0;
+}
+
+.app-header {
+  text-align: center;
+  padding: 24px 16px 8px;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  color: #666;
+  margin-top: 4px;
+}
+
+#app {
+  max-width: 640px;
+  margin: 16px auto 64px;
+  padding: 0 16px;
+}
+
+.screen {
+  display: none;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.screen.active {
+  display: block;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+label {
+  display: block;
+  margin: 16px 0 6px;
+  font-weight: 600;
+}
+
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #2b6cb0;
+  color: #fff;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #23517f;
+}
+
+.panel {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.panel ul {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.hero-panel {
+  background: #fff7e6;
+  border: 2px solid #f0ad4e;
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+
+.hero-panel.hidden,
+#no-clarification-panel.hidden {
+  display: none;
+}
+
+.hero-label {
+  font-weight: 700;
+  color: #b45309;
+  letter-spacing: 2px;
+  margin: 0 0 8px;
+}
+
+.hero-question {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.hero-reason {
+  color: #92400e;
+  font-size: 14px;
+  margin: 0 0 12px;
+}
+
+.option-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.option-buttons button {
+  margin-top: 0;
+  background: #fff;
+  border: 2px solid #2b6cb0;
+  color: #2b6cb0;
+  font-weight: 600;
+}
+
+.option-buttons button:hover {
+  background: #2b6cb0;
+  color: #fff;
+}
+
+.mock-notice {
+  margin-top: 16px;
+  padding: 10px 14px;
+  background: #f3f4f6;
+  border-left: 3px solid #9ca3af;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ready-label {
+  color: #15803d;
+  font-weight: 700;
+}
+
+.result-grid {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.result-grid .panel {
+  flex: 1;
+  min-width: 240px;
+}
+
+pre {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.score-label {
+  font-weight: 700;
+  font-size: 16px;
+  color: #15803d;
+}
+
+.hint-text {
+  color: #888;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.case-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.case-btn {
+  margin-top: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: #eef2f7;
+  color: #333;
+  border: 1px solid #d1d5db;
+}
+
+.case-btn:hover {
+  background: #dbeafe;
+}
+
+.case-btn.selected {
+  background: #2b6cb0;
+  color: #fff;
+  border-color: #2b6cb0;
+}
+
+.uncertainty-item {
+  margin-bottom: 6px;
+}
+
+.impact-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.impact-high {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.impact-low {
+  background: #e5e7eb;
+  color: #555;
+}
+
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <h1>關鍵一問</h1>
+    <p class="subtitle">只有答案真的會改變結果時，才打斷使用者。</p>
+  </header>
+
+  <main id="app">
+
+    <!-- 畫面 1：任務輸入 -->
+    <section id="screen-1" class="screen active" style="display: block;">
+      <h2>1. 任務輸入</h2>
+
+      <label>快速套用測試案例（可直接點選，或自行修改下方欄位）</label>
+      <div id="case-selector" class="case-buttons"></div>
+
+      <label for="task-input">A. 你希望 AI 完成什麼？</label>
+      <textarea id="task-input" rows="2">幫我做好新品提案，等等寄給代理商。</textarea>
+
+      <label for="context-input">B. 背景資訊（直接貼文字即可）</label>
+      <textarea id="context-input" rows="6">1. 會議紀錄：本季主要目標是舊客回購，不考慮 KOL。
+2. 舊版 brief：預算最高 30 萬，TA 為 18–24 歲。
+3. 最新團隊訊息：主管今天提到 micro influencer 似乎可以測試看看。</textarea>
+
+      <button id="btn-start-check">開始預檢</button>
+      <p class="hint-text">（欄位已預填案例 C 的內容，可直接按「開始預檢」測試，或先點上方案例按鈕切換其他情境）</p>
+    </section>
+
+    <!-- 畫面 2：工作預檢 / 關鍵一問 -->
+    <section id="screen-2" class="screen" style="display: none;">
+      <h2>2. 工作預檢</h2>
+
+      <div class="panel">
+        <h3>已確認資訊</h3>
+        <ul id="confirmed-list"></ul>
+      </div>
+
+      <div class="panel">
+        <h3>不確定事項</h3>
+        <ul id="uncertainty-list"></ul>
+      </div>
+
+      <!-- 有關鍵問題時顯示 -->
+      <div id="critical-question-panel" class="hero-panel hidden">
+        <p class="hero-label">關鍵一問</p>
+        <p id="critical-question-text" class="hero-question"></p>
+        <p id="critical-question-reason" class="hero-reason"></p>
+        <!-- 選項按鈕由 app.js 依照資料動態產生，不寫死在 HTML 裡 -->
+        <div id="critical-question-options" class="option-buttons"></div>
+      </div>
+
+      <!-- 不需要澄清時顯示 -->
+      <div id="no-clarification-panel" class="panel hidden">
+        <p>所有不確定事項影響程度都低於門檻，不需要打斷你，直接建立工作契約。</p>
+        <button id="btn-skip-question">建立工作契約</button>
+      </div>
+    </section>
+
+    <!-- 畫面 3：工作契約 -->
+    <section id="screen-3" class="screen" style="display: none;">
+      <h2>3. 工作契約</h2>
+      <div class="panel">
+        <ul id="contract-list"></ul>
+        <p class="ready-label">準備完成 ✓</p>
+      </div>
+      <button id="btn-execute">開始執行</button>
+    </section>
+
+    <!-- 畫面 4：成果 + 驗證 -->
+    <section id="screen-4" class="screen" style="display: none;">
+      <h2>4. 成果與驗證</h2>
+      <div class="result-grid">
+        <div class="panel">
+          <h3>AI 生成成果</h3>
+          <pre id="result-text"></pre>
+        </div>
+        <div class="panel">
+          <h3>執行檢查</h3>
+          <ul id="verification-list"></ul>
+          <p id="verification-score" class="score-label"></p>
+        </div>
+      </div>
+      <p class="mock-notice">
+        目前為 Mock 展示版：分析結果、契約與驗證皆為預先寫好的示範資料，
+        用來展示完整的「理解 → 澄清 → 執行 → 驗證」流程；
+        接上真實 AI API 後，這裡的內容將依實際輸入即時產生。
+      </p>
+      <button id="btn-restart">重新開始</button>
+    </section>
+
+  </main>
+
+  <!-- 三支 JS 全部內嵌在同一個檔案裡，避免某些預覽工具/環境
+       不會去讀取同資料夾裡的外部 .js 檔案，導致按鈕完全沒反應。
+       邏輯仍然照原本三個檔案的順序與職責分工：mock-data → ai-service → app -->
+  <script>
+// mock-data.js
+//
+// 這個檔案「不是」AI，它只是把每個測試案例「應該長什麼樣的資料」寫死下來。
+// ai-service.js 在 mock 階段會直接回傳這裡的資料，
+// 未來接上真的 API 之後，這個檔案只會拿來做「6 個測試案例的評估資料集」，
+// 不會再出現在正式的判斷邏輯裡。
+//
+// 這一版把六個案例統一成同一種資料格式，讓 ai-service.js 可以用同一套邏輯
+// 處理任何一個案例，不用每個案例各寫一套 if/else：
+//
+// case = {
+//   taskInput, context,
+//   confirmed: [{ field, value, source }],
+//   uncertainties: [{ id, description, affectedAspects, question, reason, answerOptions? }],
+//   outcomes: {
+//     // 如果所有 uncertainties 都低於門檻（不需要澄清），用 "direct" 這組：
+//     direct: { contract, executionResult, verificationChecklist },
+//     // 如果有需要澄清的問題，依 answerOptions 的每個 id 各存一組：
+//     [optionId]: { contract, executionResult, verificationChecklist },
+//   }
+// }
+//
+// 注意：這裡故意不用 import/export（ES module），
+// 因為 module 語法在瀏覽器用 file:// 直接打開時會被擋掉。
+// 改用最單純的寫法：把資料掛在一個全域變數 MockData 上，
+// index.html 用一般 <script> 依序載入即可，不需要任何伺服器。
+//
+// 整個檔案包在 IIFE（自我執行函式）裡，是為了避免這裡面的變數名稱
+// 洩漏到全域、跟其他檔案（如 ai-service.js、app.js）的變數撞名。
+// 對外只透過 window.MockData 曝露資料。
+(function () {
+
+const cases = {
+
+  // ---------------------------------------------------------
+  // 案例 A：不該問（背景完整，應直接執行）
+  // ---------------------------------------------------------
+  caseA: {
+    label: "案例 A：不該問",
+    taskInput: "把以下 2000 字文章整理成 300 字繁體中文摘要。",
+    context: "（文章全文已完整提供，背景資訊完整）",
+    confirmed: [
+      { field: "任務類型", value: "文章摘要", source: "任務描述" },
+      { field: "字數要求", value: "約 300 字", source: "任務描述" },
+      { field: "語言", value: "繁體中文", source: "任務描述" },
+    ],
+    uncertainties: [], // 沒有任何不確定事項，應直接執行
+    outcomes: {
+      direct: {
+        contract: {
+          任務類型: "文章摘要",
+          字數要求: "約 300 字",
+          語言: "繁體中文",
+        },
+        executionResult:
+          "【文章摘要】\n\n" +
+          "（此為 mock 產出內容）本文摘要約 300 字，保留原文章的核心論點與結論，" +
+          "省略細節舉例與重複敘述，以繁體中文呈現。",
+        verificationChecklist: [
+          { label: "摘要字數約為 300 字", passed: true },
+          { label: "使用繁體中文", passed: true },
+          { label: "保留原文章核心論點", passed: true },
+        ],
+      },
+    },
+  },
+
+  // ---------------------------------------------------------
+  // 案例 B：不該問（owner 資訊已完整）
+  // ---------------------------------------------------------
+  caseB: {
+    label: "案例 B：不該問",
+    taskInput: "把這份會議紀錄整理成三項 Action Item，每項附 owner。",
+    context: "會議紀錄中三項 Action Item 的 owner 皆已明確列出。",
+    confirmed: [
+      { field: "輸出格式", value: "三項 Action Item", source: "任務描述" },
+      { field: "必要欄位", value: "每項附 owner", source: "任務描述" },
+      { field: "owner 資訊", value: "會議紀錄中已完整列出", source: "會議紀錄" },
+    ],
+    uncertainties: [],
+    outcomes: {
+      direct: {
+        contract: {
+          輸出格式: "三項 Action Item",
+          必要欄位: "owner",
+        },
+        executionResult:
+          "【Action Item 整理】\n\n" +
+          "1. 完成新版簡報草稿（Owner：小美）\n" +
+          "2. 確認下週會議室與時間（Owner：小華）\n" +
+          "3. 彙整客戶回饋並回報（Owner：小明）\n\n" +
+          "（此為 mock 產出內容，owner 依會議紀錄內容取得）",
+        verificationChecklist: [
+          { label: "共列出 3 項 Action Item", passed: true },
+          { label: "每項皆附 owner", passed: true },
+          { label: "內容取自會議紀錄", passed: true },
+        ],
+      },
+    },
+  },
+
+  // ---------------------------------------------------------
+  // 案例 C：應該問（influencer 政策衝突）
+  // ---------------------------------------------------------
+  caseC: {
+    label: "案例 C：應該問",
+    taskInput: "幫我做好新品提案，等等寄給代理商。",
+    context:
+      "1. 會議紀錄：本季主要目標是舊客回購，不考慮 KOL。\n" +
+      "2. 舊版 brief：預算最高 30 萬，TA 為 18–24 歲。\n" +
+      "3. 最新團隊訊息：主管今天提到 micro influencer 似乎可以測試看看。",
+    confirmed: [
+      { field: "目標", value: "舊客回購", source: "會議紀錄" },
+      { field: "預算上限", value: "NT$300,000", source: "舊版 brief" },
+      { field: "TA", value: "18–24 歲", source: "舊版 brief" },
+      { field: "對外用途", value: "代理商提案", source: "任務描述" },
+    ],
+    uncertainties: [
+      {
+        id: "u1",
+        description: "是否可使用 influencer 存在衝突",
+        conflictingValues: [
+          "不考慮 KOL（來源：會議紀錄）",
+          "micro influencer 可以測試（來源：最新團隊訊息）",
+        ],
+        affectedAspects: ["strategy", "budget"],
+        question: "最新主管訊息是否代表本次已允許使用 micro influencer？",
+        reason: "因為這會直接改變渠道策略、預算配置與內容方向。",
+        answerOptions: [
+          { id: "yes", label: "是，本次允許使用 micro influencer" },
+          { id: "no", label: "否，維持不使用 influencer" },
+        ],
+      },
+      {
+        id: "u2",
+        description: "提案格式未指定",
+        affectedAspects: ["format"],
+        question: "提案要用 PPT 還是一般文件格式？",
+        reason: "僅影響呈現形式，不改變策略方向。",
+      },
+    ],
+    outcomes: {
+      yes: {
+        contract: {
+          目標: "舊客回購",
+          TA: "18–24 歲",
+          預算: "<= NT$300,000",
+          Influencer政策: "允許 micro influencer（測試性質）",
+          對外對象: "Agency（代理商）",
+          Deadline: "今晚",
+          已確認限制: [
+            "不可超預算",
+            "主要目標不能偏離舊客回購",
+            "僅可使用已確認的 influencer 政策（允許 micro influencer）",
+          ],
+        },
+        executionResult:
+          "【新品提案 Draft】\n\n" +
+          "目標：促進舊客回購\n" +
+          "TA：18–24 歲舊客群\n" +
+          "渠道策略：以舊客名單再行銷為主，搭配 1–2 位 micro influencer 進行小規模測試曝光\n" +
+          "預算配置：總預算 NT$300,000 內，其中 micro influencer 測試預算控制在 15% 以內\n" +
+          "內容方向：以「回購優惠 + 真實使用心得」為主軸，避免大型 KOL 造勢型內容\n\n" +
+          "（此為 mock 產出內容，之後將由真實模型依工作契約生成）",
+        verificationChecklist: [
+          { label: "主要目標為舊客回購", passed: true },
+          { label: "預算未超過 NT$300,000", passed: true },
+          { label: "僅使用已確認的 micro influencer 政策", passed: true },
+          { label: "TA 維持 18–24 歲", passed: true },
+          { label: "未加入未授權策略（如大型 KOL）", passed: true },
+        ],
+      },
+      no: {
+        contract: {
+          目標: "舊客回購",
+          TA: "18–24 歲",
+          預算: "<= NT$300,000",
+          Influencer政策: "維持不使用 influencer（含 micro influencer）",
+          對外對象: "Agency（代理商）",
+          Deadline: "今晚",
+          已確認限制: [
+            "不可超預算",
+            "主要目標不能偏離舊客回購",
+            "不可使用任何 influencer（含 micro influencer）",
+          ],
+        },
+        executionResult:
+          "【新品提案 Draft】\n\n" +
+          "目標：促進舊客回購\n" +
+          "TA：18–24 歲舊客群\n" +
+          "渠道策略：完全聚焦舊客名單再行銷，透過 EDM／簡訊／APP 推播進行回購優惠溝通，不使用任何 influencer 曝光\n" +
+          "預算配置：總預算 NT$300,000 內，全數投入舊客渠道與回購優惠設計\n" +
+          "內容方向：以「專屬舊客回饋方案」為主軸，強調熟客尊榮感\n\n" +
+          "（此為 mock 產出內容，之後將由真實模型依工作契約生成）",
+        verificationChecklist: [
+          { label: "主要目標為舊客回購", passed: true },
+          { label: "預算未超過 NT$300,000", passed: true },
+          { label: "未使用任何 influencer（含 micro influencer）", passed: true },
+          { label: "TA 維持 18–24 歲", passed: true },
+          { label: "未加入未授權策略（如大型 KOL）", passed: true },
+        ],
+      },
+    },
+  },
+
+  // ---------------------------------------------------------
+  // 案例 D：應該問（退款金額與授權未知）
+  // ---------------------------------------------------------
+  caseD: {
+    label: "案例 D：應該問",
+    taskInput: "幫我回覆客戶並答應退款。",
+    context: "背景資訊中沒有退款金額，也沒有退款授權範圍。",
+    confirmed: [{ field: "客戶要求", value: "退款", source: "任務描述" }],
+    uncertainties: [
+      {
+        id: "d1",
+        description: "退款金額與授權範圍未知",
+        affectedAspects: ["external", "budget"],
+        question: "這筆退款屬於哪種情況？",
+        reason: "退款屬於對外且不可逆的承諾，金額與授權範圍會直接影響能否同意。",
+        answerOptions: [
+          { id: "small", label: "小額退款（NT$1,000 以內），可直接同意" },
+          { id: "large", label: "金額較大或無法確認上限，需先取得主管核准" },
+        ],
+      },
+    ],
+    outcomes: {
+      small: {
+        contract: {
+          客戶要求: "退款",
+          退款範圍: "NT$1,000 以內",
+          對外承諾: "已同意退款",
+        },
+        executionResult:
+          "【客戶回覆草稿】\n\n" +
+          "您好，已確認您的退款申請在可直接處理的範圍內，我們將盡快為您辦理退款，" +
+          "款項將於 3–5 個工作天內退回原付款方式。\n\n（此為 mock 產出內容）",
+        verificationChecklist: [
+          { label: "退款金額在可直接決定的授權範圍內", passed: true },
+          { label: "未逾越個人可決定的退款上限", passed: true },
+          { label: "已明確告知客戶處理結果", passed: true },
+        ],
+      },
+      large: {
+        contract: {
+          客戶要求: "退款",
+          退款範圍: "金額較大，需主管核准",
+          對外承諾: "尚未答應退款，先回覆處理中",
+        },
+        executionResult:
+          "【客戶回覆草稿】\n\n" +
+          "您好，收到您的退款申請了，因金額需要進一步確認，我們會盡快處理並在 1–2 個工作天內回覆您結果，" +
+          "造成不便還請見諒。\n\n（此為 mock 產出內容，尚未對外承諾退款）",
+        verificationChecklist: [
+          { label: "未在無授權下直接承諾退款", passed: true },
+          { label: "已即時回應讓客戶知道處理進度", passed: true },
+          { label: "保留後續與主管確認的空間", passed: true },
+        ],
+      },
+    },
+  },
+
+  // ---------------------------------------------------------
+  // 案例 E：應該問（campaign 目標前後衝突）
+  // ---------------------------------------------------------
+  caseE: {
+    label: "案例 E：應該問",
+    taskInput: "幫我排下週 campaign。",
+    context:
+      "舊文件：本次 campaign 目標是提升轉換率。\n最新訊息：主管提到這次改成衝品牌知名度。",
+    confirmed: [{ field: "執行時間", value: "下週", source: "任務描述" }],
+    uncertainties: [
+      {
+        id: "e1",
+        description: "campaign 主要目標前後衝突",
+        conflictingValues: [
+          "轉換率（來源：舊文件）",
+          "品牌知名度（來源：最新訊息）",
+        ],
+        affectedAspects: ["goal", "strategy"],
+        question: "這次 campaign 的主要目標，是要維持轉換率，還是改成品牌知名度？",
+        reason: "目標不同會直接改變素材方向、版位配置與成效衡量方式。",
+        answerOptions: [
+          { id: "conversion", label: "維持以轉換率為主要目標" },
+          { id: "awareness", label: "改成以品牌知名度為主要目標" },
+        ],
+      },
+    ],
+    outcomes: {
+      conversion: {
+        contract: {
+          主要目標: "轉換率",
+          素材方向: "導購型素材，強調限時優惠與行動呼籲",
+          成效指標: "轉換率、ROAS",
+        },
+        executionResult:
+          "【Campaign 排程草案】\n\n" +
+          "主要目標：轉換率\n" +
+          "素材方向：導購型素材，強調限時優惠與明確的行動呼籲（CTA）\n" +
+          "版位建議：以搜尋與再行銷版位為主\n\n（此為 mock 產出內容）",
+        verificationChecklist: [
+          { label: "主要目標為轉換率", passed: true },
+          { label: "素材方向聚焦導購", passed: true },
+          { label: "排程符合下週時間", passed: true },
+        ],
+      },
+      awareness: {
+        contract: {
+          主要目標: "品牌知名度",
+          素材方向: "品牌故事型素材，強調觸及與曝光",
+          成效指標: "觸及人數、曝光次數",
+        },
+        executionResult:
+          "【Campaign 排程草案】\n\n" +
+          "主要目標：品牌知名度\n" +
+          "素材方向：品牌故事型素材，強調情感連結與品牌識別\n" +
+          "版位建議：以社群動態與影音版位為主，擴大觸及\n\n（此為 mock 產出內容）",
+        verificationChecklist: [
+          { label: "主要目標為品牌知名度", passed: true },
+          { label: "素材方向聚焦品牌曝光", passed: true },
+          { label: "排程符合下週時間", passed: true },
+        ],
+      },
+    },
+  },
+
+  // ---------------------------------------------------------
+  // 案例 F：低價值缺漏不該問（只是不知道字體）
+  // ---------------------------------------------------------
+  caseF: {
+    label: "案例 F：不該問",
+    taskInput: "幫我做一份月報。",
+    context: "策略、受眾、目標、預算皆清楚，只是沒說報告要用哪個字體。",
+    confirmed: [
+      { field: "策略", value: "已提供", source: "背景資訊" },
+      { field: "受眾", value: "已提供", source: "背景資訊" },
+      { field: "目標", value: "已提供", source: "背景資訊" },
+      { field: "預算", value: "已提供", source: "背景資訊" },
+    ],
+    uncertainties: [
+      {
+        id: "f1",
+        description: "報告字體未指定",
+        affectedAspects: ["format"],
+        question: "報告要用哪個字體？",
+        reason: "僅影響呈現形式，不改變內容或策略。",
+      },
+    ],
+    outcomes: {
+      direct: {
+        contract: {
+          策略: "依背景資訊",
+          受眾: "依背景資訊",
+          目標: "依背景資訊",
+          預算: "依背景資訊",
+        },
+        executionResult:
+          "【月報草案】\n\n" +
+          "（此為 mock 產出內容）已依既有策略、受眾、目標與預算資訊完成月報草案，" +
+          "字體採用預設樣式，如需調整可事後再更換。",
+        verificationChecklist: [
+          { label: "涵蓋已提供的策略／受眾／目標／預算", passed: true },
+          { label: "未因格式問題卡住產出", passed: true },
+        ],
+      },
+    },
+  },
+};
+
+// 掛到全域變數上，讓其他 <script> 可以直接用 MockData.cases.caseC 存取
+window.MockData = { cases };
+
+})(); // IIFE 結束
+
+  </script>
+  <script>
+// ai-service.js
+//
+// 這個檔案是整個產品「唯一」跟 AI 邏輯溝通的入口。
+// app.js（UI 邏輯）只會呼叫這裡的四個函式，完全不知道背後是 mock 還是真的 API。
+//
+// ============================================================
+// 【重要】未來接真 API 時，只需要改這個檔案裡面的實作，規則如下：
+//
+// 1. 這四個函式最終應該改成 fetch 我們「自己 server 的 endpoint」，
+//    例如 fetch('/api/analyze-task', {...})，
+//    再由 server 端去呼叫 OpenAI / Anthropic。
+// 2. API key 絕對不能寫在這支前端檔案，也不能出現在瀏覽器 devtools 看得到的地方。
+// 3. 呼叫端（app.js）收到的資料格式現在就先定好，之後 server 回傳的 JSON
+//    要符合一樣的形狀，UI 才不用改。
+//
+// 目前這個檔案先用 mock 資料，還沒有任何網路呼叫。
+//
+// 【這一版的改動】原本 analyzeTask 不管輸入什麼都固定回傳案例 C，
+// 現在改成可以指定要用哪一個 mock 案例（caseId），讓六個測試案例都能真的
+// 在畫面上點過一次。等真 API 接上後，caseId 這個參數就會整個拿掉，
+// 因為屆時是模型真的去分析 taskInput/context，不再需要指定案例。
+//
+// 注意：這裡故意不用 import/export（ES module），原因跟 mock-data.js 一樣，
+// 是為了讓 index.html 可以直接雙擊打開跑，不需要架本地伺服器。
+// 這個檔案要在 index.html 裡排在 mock-data.js 之後載入，
+// 才能透過 window.MockData 拿到資料。
+//
+// 整個檔案也包在 IIFE 裡，原因跟 mock-data.js 一樣：
+// 避免函式名稱（analyzeTask 等）洩漏到全域跟 app.js 撞名。
+// 對外只透過 window.AIService 曝露這四個函式。
+// ============================================================
+(function () {
+
+const allCases = window.MockData.cases;
+
+// ------------------------------------------------------------
+// 影響分數規則（deterministic，不是模型決定的）
+//
+// 模型（未來）只需要判斷一個不確定事項「影響哪些面向」，
+// 例如 affectedAspects: ["strategy", "budget"]。
+// 分數則完全由我們自己寫的規則計算，可以在 README 清楚解釋，
+// 也方便之後調整權重而不用重新設計 prompt。
+// ------------------------------------------------------------
+const ASPECT_WEIGHTS = {
+  goal: 5, // 核心目標
+  external: 5, // 對外 / 不可逆行動
+  strategy: 4, // 主要內容 / 策略
+  budget: 4, // 預算 / 資源
+  audience: 3, // 使用者 / 受眾
+  deadline: 3, // Deadline
+  format: 1, // 格式 / 表面呈現
+};
+
+// 超過這個分數才值得打斷使用者問問題
+const IMPACT_THRESHOLD = 6;
+
+function calculateImpactScore(affectedAspects = []) {
+  return affectedAspects.reduce((total, aspect) => {
+    return total + (ASPECT_WEIGHTS[aspect] || 0);
+  }, 0);
+}
+
+// 模擬網路延遲，之後真的接 API 時可以直接刪掉這個
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// ------------------------------------------------------------
+// 1. analyzeTask(taskInput, context, caseId)
+//
+// caseId：目前 mock 階段專用，指定要用 mock-data.js 裡哪一個案例的資料
+// （例如 "caseA" ~ "caseF"）。之後接真 API 時，這個參數會拿掉，
+// 因為屆時是真的分析 taskInput/context 的內容，不需要事先指定案例。
+//
+// 回傳格式：
+// {
+//   caseId,
+//   confirmed: [{ field, value, source }],
+//   uncertainties: [{ id, description, affectedAspects, impactScore, question, reason, answerOptions? }],
+//   needsClarification: boolean,
+//   criticalIssue: 上面 uncertainties 其中一項（分數最高且超過門檻），或 null
+// }
+// ------------------------------------------------------------
+async function analyzeTask(taskInput, context, caseId) {
+  await delay(600);
+
+  const mockCase = allCases[caseId] || allCases.caseC;
+
+  // 幫每個不確定事項計算分數（這一步不管 mock 或真 API 都會做，
+  // 因為分數永遠是我們自己算的，不是模型給的）
+  const uncertaintiesWithScore = mockCase.uncertainties.map((u) => ({
+    ...u,
+    impactScore: calculateImpactScore(u.affectedAspects),
+  }));
+
+  // 找出「分數最高，且超過門檻」的那一項
+  const sorted = [...uncertaintiesWithScore].sort(
+    (a, b) => b.impactScore - a.impactScore
+  );
+  const topIssue = sorted[0];
+  const needsClarification =
+    !!topIssue && topIssue.impactScore >= IMPACT_THRESHOLD;
+
+  return {
+    caseId,
+    confirmed: mockCase.confirmed,
+    uncertainties: uncertaintiesWithScore,
+    needsClarification,
+    criticalIssue: needsClarification ? topIssue : null,
+  };
+}
+
+// ------------------------------------------------------------
+// 2. buildExecutionContract(analysisResult, userAnswerId)
+//
+// userAnswerId：使用者選的「選項 id」（例如 "yes" / "no"）。
+// 如果 needsClarification 一開始就是 false，這裡會是 null，
+// 這種情況固定使用該案例 outcomes 裡的 "direct" 那組資料。
+//
+// 回傳：一個純物件，代表「工作契約」，畫面 3 會直接渲染這個物件。
+// ------------------------------------------------------------
+async function buildExecutionContract(analysisResult, userAnswerId) {
+  await delay(400);
+
+  const mockCase = allCases[analysisResult.caseId] || allCases.caseC;
+  const outcomeKey = analysisResult.needsClarification ? userAnswerId : "direct";
+  const outcome = mockCase.outcomes[outcomeKey] || mockCase.outcomes.direct;
+
+  // 找出選項的顯示文字（給畫面 3 顯示「這是根據你選的哪個答案建立的」）
+  const selectedOption = analysisResult.criticalIssue?.answerOptions?.find(
+    (opt) => opt.id === userAnswerId
+  );
+
+  return {
+    ...outcome.contract,
+    // _ 開頭的欄位是內部用的，畫面 3 渲染契約時會略過，不會顯示出來，
+    // 但 executeTask/verifyResult 需要靠它們找到正確的那組 outcome。
+    _caseId: analysisResult.caseId,
+    _outcomeKey: outcomeKey,
+    _resolvedFrom: {
+      question: analysisResult.criticalIssue?.question || null,
+      userAnswer: selectedOption?.label || null,
+    },
+  };
+}
+
+// ------------------------------------------------------------
+// 3. executeTask(contract)
+//
+// 回傳：字串（AI 生成的成果內容）
+// ------------------------------------------------------------
+async function executeTask(contract) {
+  await delay(800);
+  // 之後接真 API：這裡改成把 contract 當成 prompt 的一部分送給模型。
+  const mockCase = allCases[contract._caseId] || allCases.caseC;
+  const outcome = mockCase.outcomes[contract._outcomeKey] || mockCase.outcomes.direct;
+  return outcome.executionResult;
+}
+
+// ------------------------------------------------------------
+// 4. verifyResult(result, contract)
+//
+// 回傳：
+// {
+//   checklist: [{ label, passed }],
+//   passedCount: number,
+//   totalCount: number
+// }
+// ------------------------------------------------------------
+async function verifyResult(result, contract) {
+  await delay(500);
+  const mockCase = allCases[contract._caseId] || allCases.caseC;
+  const outcome = mockCase.outcomes[contract._outcomeKey] || mockCase.outcomes.direct;
+  const checklist = outcome.verificationChecklist;
+  const passedCount = checklist.filter((item) => item.passed).length;
+  return {
+    checklist,
+    passedCount,
+    totalCount: checklist.length,
+  };
+}
+
+// 掛到全域變數上，讓 app.js 可以直接用 AIService.analyzeTask(...) 呼叫
+window.AIService = {
+  analyzeTask,
+  buildExecutionContract,
+  executeTask,
+  verifyResult,
+  IMPACT_THRESHOLD,
+};
+
+})(); // IIFE 結束
+
+  </script>
+  <script>
+// app.js
+//
+// 這個檔案只負責「畫面」：
+// - 使用者按了哪個按鈕
+// - 呼叫 ai-service.js 對應的函式
+// - 把回傳的資料塞進 DOM、切換顯示哪個畫面
+//
+// 這裡完全不知道資料是 mock 還是真的 API，
+// 也不做任何 impact_score 的計算（那是 ai-service.js 的責任）。
+//
+// 注意：這裡故意不用 import（ES module），原因跟另外兩個檔案一樣，
+// 是為了讓 index.html 可以直接雙擊打開跑。
+// 這個檔案要排在 mock-data.js、ai-service.js 之後載入。
+
+const analyzeTask = window.AIService.analyzeTask;
+const buildExecutionContract = window.AIService.buildExecutionContract;
+const executeTask = window.AIService.executeTask;
+const verifyResult = window.AIService.verifyResult;
+const IMPACT_THRESHOLD = window.AIService.IMPACT_THRESHOLD;
+
+// 保存這一輪流程的狀態，畫面之間互相傳遞用
+const state = {
+  taskInput: "",
+  context: "",
+  selectedCaseId: "caseC", // 預設案例 C，可透過畫面 1 的按鈕切換
+  analysisResult: null,
+  userAnswer: null,
+  contract: null,
+  executionResult: null,
+};
+
+// ---------- 案例選擇（Mock 階段專用）----------
+// 依照 mock-data.js 裡的六個案例，動態產生按鈕，
+// 按下去會直接把該案例的 taskInput/context 填進欄位，
+// 並記住選了哪個案例，之後呼叫 analyzeTask 時會用到。
+(function renderCaseSelector() {
+  const container = document.getElementById("case-selector");
+  const cases = window.MockData.cases;
+  Object.keys(cases).forEach((caseId) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "case-btn";
+    btn.textContent = cases[caseId].label;
+    btn.addEventListener("click", () => {
+      const mockCase = cases[caseId];
+      document.getElementById("task-input").value = mockCase.taskInput;
+      document.getElementById("context-input").value = mockCase.context;
+      state.selectedCaseId = caseId;
+
+      // 標示目前選到哪個案例
+      document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
+      btn.classList.add("selected");
+    });
+    container.appendChild(btn);
+  });
+})();
+
+// ---------- 畫面切換 ----------
+// 這裡故意「不只」靠 CSS 的 class 來隱藏畫面，
+// 而是直接用 JS 設定每個畫面的 display，
+// 這樣即使外部 style.css 在某些預覽環境沒被正確套用，
+// 畫面切換還是一定會生效，不會四個畫面同時疊在一起。
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach((el) => {
+    const isTarget = el.id === id;
+    el.classList.toggle("active", isTarget);
+    el.style.display = isTarget ? "block" : "none";
+  });
+}
+
+// ---------- 畫面 1：任務輸入 ----------
+document.getElementById("btn-start-check").addEventListener("click", async () => {
+  const taskInput = document.getElementById("task-input").value.trim();
+  const context = document.getElementById("context-input").value.trim();
+
+  if (!taskInput) {
+    alert("請先輸入你希望 AI 完成什麼任務");
+    return;
+  }
+
+  state.taskInput = taskInput;
+  state.context = context;
+
+  const btn = document.getElementById("btn-start-check");
+  btn.disabled = true;
+  btn.textContent = "分析中...";
+
+  const analysisResult = await analyzeTask(taskInput, context, state.selectedCaseId);
+  state.analysisResult = analysisResult;
+
+  btn.disabled = false;
+  btn.textContent = "開始預檢";
+
+  renderScreen2(analysisResult);
+  showScreen("screen-2");
+});
+
+// ---------- 畫面 2：工作預檢 / 關鍵一問 ----------
+function renderScreen2(analysisResult) {
+  // 已確認資訊
+  const confirmedList = document.getElementById("confirmed-list");
+  confirmedList.innerHTML = "";
+  analysisResult.confirmed.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = `${item.field}：${item.value}（來源：${item.source}）`;
+    confirmedList.appendChild(li);
+  });
+
+  // 不確定事項（含分數，方便展示「有規則、不是憑感覺」）
+  const uncertaintyList = document.getElementById("uncertainty-list");
+  uncertaintyList.innerHTML = "";
+  analysisResult.uncertainties.forEach((u) => {
+    const li = document.createElement("li");
+    li.className = "uncertainty-item";
+    const isHigh = u.impactScore >= IMPACT_THRESHOLD;
+    li.innerHTML = `${u.description}
+      <span class="impact-tag ${isHigh ? "impact-high" : "impact-low"}">
+        影響分數 ${u.impactScore}
+      </span>`;
+    uncertaintyList.appendChild(li);
+  });
+
+  const heroPanel = document.getElementById("critical-question-panel");
+  const skipPanel = document.getElementById("no-clarification-panel");
+
+  if (analysisResult.needsClarification) {
+    heroPanel.classList.remove("hidden");
+    skipPanel.classList.add("hidden");
+    document.getElementById("critical-question-text").textContent =
+      analysisResult.criticalIssue.question;
+    document.getElementById("critical-question-reason").textContent =
+      analysisResult.criticalIssue.reason;
+
+    // 依照 criticalIssue.answerOptions 動態產生按鈕，
+    // 而不是寫死在 HTML 裡，之後其他案例如果也有明確選項，可以直接重用這段邏輯。
+    const optionsContainer = document.getElementById("critical-question-options");
+    optionsContainer.innerHTML = "";
+    (analysisResult.criticalIssue.answerOptions || []).forEach((option) => {
+      const btn = document.createElement("button");
+      btn.textContent = option.label;
+      btn.addEventListener("click", async () => {
+        state.userAnswer = option.id;
+        await goToContract();
+      });
+      optionsContainer.appendChild(btn);
+    });
+  } else {
+    heroPanel.classList.add("hidden");
+    skipPanel.classList.remove("hidden");
+  }
+}
+
+// 不需要澄清，直接建立契約
+document.getElementById("btn-skip-question").addEventListener("click", async () => {
+  state.userAnswer = null;
+  await goToContract();
+});
+
+async function goToContract() {
+  const contract = await buildExecutionContract(state.analysisResult, state.userAnswer);
+  state.contract = contract;
+  renderScreen3(contract);
+  showScreen("screen-3");
+}
+
+// ---------- 畫面 3：工作契約 ----------
+function renderScreen3(contract) {
+  const list = document.getElementById("contract-list");
+  list.innerHTML = "";
+  Object.entries(contract).forEach(([key, value]) => {
+    if (key.startsWith("_")) return; // 略過內部欄位（如 _resolvedFrom）
+    const li = document.createElement("li");
+    if (Array.isArray(value)) {
+      li.textContent = `${key}：${value.join("、")}`;
+    } else {
+      li.textContent = `${key}：${value}`;
+    }
+    list.appendChild(li);
+  });
+}
+
+document.getElementById("btn-execute").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-execute");
+  btn.disabled = true;
+  btn.textContent = "執行中...";
+
+  const resultText = await executeTask(state.contract);
+  state.executionResult = resultText;
+
+  const verification = await verifyResult(resultText, state.contract);
+
+  btn.disabled = false;
+  btn.textContent = "開始執行";
+
+  renderScreen4(resultText, verification);
+  showScreen("screen-4");
+});
+
+// ---------- 畫面 4：成果 + 驗證 ----------
+function renderScreen4(resultText, verification) {
+  document.getElementById("result-text").textContent = resultText;
+
+  const list = document.getElementById("verification-list");
+  list.innerHTML = "";
+  verification.checklist.forEach((item) => {
+    const li = document.createElement("li");
+    li.textContent = `${item.passed ? "✓" : "✗"} ${item.label}`;
+    list.appendChild(li);
+  });
+
+  document.getElementById("verification-score").textContent =
+    `${verification.passedCount} / ${verification.totalCount} 條件符合`;
+}
+
+// ---------- 重新開始 ----------
+document.getElementById("btn-restart").addEventListener("click", () => {
+  document.getElementById("task-input").value = "";
+  document.getElementById("context-input").value = "";
+  document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
+  Object.keys(state).forEach((k) => (state[k] = null));
+  state.selectedCaseId = "caseC";
+  showScreen("screen-1");
+});
+
+// ---------- 初始化 ----------
+// 頁面剛載入時，主動呼叫一次，確保只有畫面 1 顯示，
+// 不要依賴 CSS 是否有正確套用「screen.active」這個 class。
+showScreen("screen-1");
+
+  </script>
+</body>
+</html>
