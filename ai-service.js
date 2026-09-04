@@ -192,6 +192,35 @@ async function buildExecutionContract(analysisResult, userAnswerId) {
     },
   };
 }
+// ------------------------------------------------------------
+// buildExecutionContractLive(taskInput, confirmed, clarifications)
+//
+// Live 模式專用。跟 Mock 的 buildExecutionContract 不一樣的地方是：
+// 這裡完全不呼叫任何模型，純粹用程式把已經拿到的資料（confirmed、
+// clarifications）整理成一個「通用」的契約結構——因為 Live 模式的任務
+// 是任意輸入，沒辦法像 Mock 案例那樣事先假設會有哪些固定欄位
+// （例如「預算」「TA」這種）。
+//
+// clarifications 是一個陣列，每一筆是使用者對某個關鍵問題的回答：
+// { field, question, answer }
+// ------------------------------------------------------------
+async function buildExecutionContractLive(taskInput, confirmed, clarifications) {
+  return {
+    _mode: "live",
+    taskInput,
+    confirmedItems: (confirmed || []).map((c) => ({
+      field: c.field,
+      value: c.value,
+      source: c.source,
+    })),
+    clarifications: (clarifications || []).map((c) => ({
+      field: c.field,
+      question: c.question,
+      answer: c.answer,
+      source: "使用者確認",
+    })),
+  };
+}
 
 // ------------------------------------------------------------
 // 3. executeTask(contract)
@@ -234,6 +263,7 @@ window.AIService = {
   analyzeTaskMock,
   analyzeTaskLive,
   buildExecutionContract,
+  buildExecutionContractLive,
   executeTask,
   verifyResult,
   IMPACT_THRESHOLD,

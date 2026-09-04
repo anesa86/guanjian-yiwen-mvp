@@ -15,6 +15,7 @@
 const analyzeTaskMock = window.AIService.analyzeTaskMock;
 const analyzeTaskLive = window.AIService.analyzeTaskLive;
 const buildExecutionContract = window.AIService.buildExecutionContract;
+const buildExecutionContractLive = window.AIService.buildExecutionContractLive;
 const executeTask = window.AIService.executeTask;
 const verifyResult = window.AIService.verifyResult;
 const IMPACT_THRESHOLD = window.AIService.IMPACT_THRESHOLD;
@@ -24,19 +25,18 @@ const state = {
   taskInput: "",
   context: "",
   selectedCaseId: "caseC", // 預設案例 C，可透過畫面 1 的按鈕切換
-  // mode 目前固定是 "live"，這一步（階段 7 第一小步）還沒有做 Live/Demo
-  // 切換的開關，那是下一步的事。先把這個狀態欄位建起來，之後直接用。
   mode: "live",
   analysisResult: null,
-  userAnswer: null,
+  userAnswer: null, // Mock 專用：使用者按下的按鈕選項 id（例如 "yes"/"no"）
+  // Live 專用：還沒問過、分數過門檻的 uncertainties 佇列，依分數高到低排列
+  pendingQuestions: [],
+  // Live 專用：{ field, question, answer } 陣列，累積每一輪回答
+  clarifications: [],
   contract: null,
   executionResult: null,
 };
 
 // ---------- 案例選擇（Mock 階段專用）----------
-// 依照 mock-data.js 裡的六個案例，動態產生按鈕，
-// 按下去會直接把該案例的 taskInput/context 填進欄位，
-// 並記住選了哪個案例，之後呼叫 analyzeTask 時會用到。
 (function renderCaseSelector() {
   const container = document.getElementById("case-selector");
   const cases = window.MockData.cases;
@@ -51,7 +51,6 @@ const state = {
       document.getElementById("context-input").value = mockCase.context;
       state.selectedCaseId = caseId;
 
-      // 標示目前選到哪個案例
       document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
       btn.classList.add("selected");
     });
@@ -60,10 +59,6 @@ const state = {
 })();
 
 // ---------- 畫面切換 ----------
-// 這裡故意「不只」靠 CSS 的 class 來隱藏畫面，
-// 而是直接用 JS 設定每個畫面的 display，
-// 這樣即使外部 style.css 在某些預覽環境沒被正確套用，
-// 畫面切換還是一定會生效，不會四個畫面同時疊在一起。
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach((el) => {
     const isTarget = el.id === id;
@@ -74,8 +69,7 @@ function showScreen(id) {
 
 // ---------- 畫面 1：任務輸入 ----------
 //
-// 目前固定走 Live AI：成功後把計分後的結果交給既有 renderScreen2。
-// 這一步不進入工作契約 / 執行 / 驗證。
+// 目前固定走 Live AI：成功後把計分後的結果交給 renderScreen2。
 // 失敗時顯示錯誤訊息跟「重新嘗試」按鈕。
 
 const liveStatusEl = document.getElementById("live-status");
@@ -112,6 +106,14 @@ async function runLiveAnalysis() {
     state.taskInput = taskInput;
     state.context = context;
     state.analysisResult = result;
+    state.clarifications = [];
+
+    // 把所有「分數過門檻」的 uncertainty 依分數高到低排好，
+    // 存成佇列，畫面 2 一次只顯示佇列最前面那一題。
+    state.pendingQuestions = (result.uncertainties || [])
+      .filter((u) => u.impactScore >= IMPACT_THRESHOLD)
+      .sort((a, b) => b.impactScore - a.impactScore);
+
     hideLiveStatusBlocks();
     renderScreen2(result);
     showScreen("screen-2");
@@ -130,7 +132,6 @@ document.getElementById("btn-retry-live").addEventListener("click", runLiveAnaly
 
 // ---------- 畫面 2：工作預檢 / 關鍵一問 ----------
 function renderScreen2(analysisResult) {
-  // 已確認資訊
   const confirmedList = document.getElementById("confirmed-list");
   confirmedList.innerHTML = "";
   analysisResult.confirmed.forEach((item) => {
@@ -139,7 +140,6 @@ function renderScreen2(analysisResult) {
     confirmedList.appendChild(li);
   });
 
-  // 不確定事項（含分數，方便展示「有規則、不是憑感覺」）
   const uncertaintyList = document.getElementById("uncertainty-list");
   uncertaintyList.innerHTML = "";
   analysisResult.uncertainties.forEach((u) => {
@@ -156,21 +156,25 @@ function renderScreen2(analysisResult) {
   const heroPanel = document.getElementById("critical-question-panel");
   const skipPanel = document.getElementById("no-clarification-panel");
 
-  if (analysisResult.needsClarification) {
+  // Live 模式：畫面要顯示的問題，是佇列最前面那一個（不是固定的 criticalIssue）
+  const currentQuestion =
+    state.mode === "live" ? state.pendingQuestions[0] : analysisResult.criticalIssue;
+  const stillNeedsClarification =
+    state.mode === "live" ? state.pendingQuestions.length > 0 : analysisResult.needsClarification;
+
+  if (stillNeedsClarification) {
     heroPanel.classList.remove("hidden");
     skipPanel.classList.add("hidden");
-    document.getElementById("critical-question-text").textContent =
-      analysisResult.criticalIssue.question;
-    document.getElementById("critical-question-reason").textContent =
-      analysisResult.criticalIssue.reason;
+    document.getElementById("critical-question-text").textContent = currentQuestion.question;
+    document.getElementById("critical-question-reason").textContent = currentQuestion.reason;
 
-    // Live 模式沒有模型給的選項，用既有自由文字框；這一步不送出、不進契約。
-    // Demo/mock 若帶 answerOptions，仍動態產生按鈕（目前主流程是 Live）。
     const optionsContainer = document.getElementById("critical-question-options");
     const freeTextEl = document.getElementById("critical-question-freetext");
+    const answerInput = document.getElementById("critical-answer-input");
     optionsContainer.innerHTML = "";
+    if (answerInput) answerInput.value = "";
 
-    const options = analysisResult.criticalIssue.answerOptions || [];
+    const options = currentQuestion.answerOptions || [];
     const useFreeText = state.mode === "live" || options.length === 0;
 
     if (useFreeText) {
@@ -195,7 +199,42 @@ function renderScreen2(analysisResult) {
   }
 }
 
-// 不需要澄清，直接建立契約
+// Live 模式：按下「確認回答」送出這一題，判斷還有沒有下一題
+document.getElementById("btn-submit-live-answer").addEventListener("click", () => {
+  const answerInput = document.getElementById("critical-answer-input");
+  const answer = answerInput.value.trim();
+
+  if (!answer) {
+    alert("請先輸入你的回答。");
+    return;
+  }
+
+  const answeredQuestion = state.pendingQuestions.shift();
+  state.clarifications.push({
+    field: answeredQuestion.field,
+    question: answeredQuestion.question,
+    answer,
+  });
+
+  if (state.pendingQuestions.length > 0) {
+    renderScreen2(state.analysisResult);
+  } else {
+    goToLiveContract();
+  }
+});
+
+async function goToLiveContract() {
+  const contract = await buildExecutionContractLive(
+    state.taskInput,
+    state.analysisResult.confirmed,
+    state.clarifications
+  );
+  state.contract = contract;
+  renderScreen3(contract);
+  showScreen("screen-3");
+}
+
+// 不需要澄清，直接建立契約（Mock 專用路徑）
 document.getElementById("btn-skip-question").addEventListener("click", async () => {
   state.userAnswer = null;
   await goToContract();
@@ -209,11 +248,27 @@ async function goToContract() {
 }
 
 // ---------- 畫面 3：工作契約 ----------
+// Mock 契約跟 Live 契約長得不一樣，用 contract._mode 判斷要渲染哪一種。
 function renderScreen3(contract) {
+  const mockPanel = document.getElementById("mock-contract-panel");
+  const livePanel = document.getElementById("live-contract-panel");
+
+  if (contract._mode === "live") {
+    mockPanel.classList.add("hidden");
+    livePanel.classList.remove("hidden");
+    renderLiveContract(contract);
+  } else {
+    livePanel.classList.add("hidden");
+    mockPanel.classList.remove("hidden");
+    renderMockContract(contract);
+  }
+}
+
+function renderMockContract(contract) {
   const list = document.getElementById("contract-list");
   list.innerHTML = "";
   Object.entries(contract).forEach(([key, value]) => {
-    if (key.startsWith("_")) return; // 略過內部欄位（如 _resolvedFrom）
+    if (key.startsWith("_")) return;
     const li = document.createElement("li");
     if (Array.isArray(value)) {
       li.textContent = `${key}：${value.join("、")}`;
@@ -221,6 +276,26 @@ function renderScreen3(contract) {
       li.textContent = `${key}：${value}`;
     }
     list.appendChild(li);
+  });
+}
+
+function renderLiveContract(contract) {
+  document.getElementById("live-contract-task").textContent = contract.taskInput;
+
+  const confirmedList = document.getElementById("live-contract-confirmed");
+  confirmedList.innerHTML = "";
+  contract.confirmedItems.forEach((item) => {
+    const li = document.createElement("li");
+    li.innerHTML = `${item.field}：${item.value}<span class="source-tag">來源：${item.source}</span>`;
+    confirmedList.appendChild(li);
+  });
+
+  const clarificationList = document.getElementById("live-contract-clarifications");
+  clarificationList.innerHTML = "";
+  contract.clarifications.forEach((item) => {
+    const li = document.createElement("li");
+    li.innerHTML = `${item.field}：${item.answer}<span class="source-tag">來源：使用者確認</span>`;
+    clarificationList.appendChild(li);
   });
 }
 
@@ -265,10 +340,10 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   Object.keys(state).forEach((k) => (state[k] = null));
   state.selectedCaseId = "caseC";
   state.mode = "live";
+  state.clarifications = [];
+  state.pendingQuestions = [];
   showScreen("screen-1");
 });
 
 // ---------- 初始化 ----------
-// 頁面剛載入時，主動呼叫一次，確保只有畫面 1 顯示，
-// 不要依賴 CSS 是否有正確套用「screen.active」這個 class。
 showScreen("screen-1");
