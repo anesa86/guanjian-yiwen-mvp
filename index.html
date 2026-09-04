@@ -31,6 +31,19 @@
 
       <button id="btn-start-check">開始預檢</button>
       <p class="hint-text">（欄位已預填案例 C 的內容，可直接按「開始預檢」測試，或先點上方案例按鈕切換其他情境）</p>
+
+      <!-- Live 分析中的狀態與錯誤；成功後會切到畫面 2 -->
+      <div id="live-status" class="live-status hidden">
+        <p id="live-status-text">正在辨識任務中的缺漏與衝突…</p>
+      </div>
+      <div id="live-error" class="live-error hidden">
+        <p id="live-error-text"></p>
+        <button id="btn-retry-live">重新嘗試</button>
+      </div>
+      <div id="live-debug" class="live-debug hidden">
+        <h3>Debug：API 回傳結果</h3>
+        <pre id="live-debug-content"></pre>
+      </div>
     </section>
 
     <!-- 畫面 2：工作預檢 / 關鍵一問 -->
@@ -54,6 +67,10 @@
         <p id="critical-question-reason" class="hero-reason"></p>
         <!-- 選項按鈕由 app.js 依照資料動態產生，不寫死在 HTML 裡 -->
         <div id="critical-question-options" class="option-buttons"></div>
+        <!-- Live 模式用自由文字；這一步只顯示，不送出、不進契約 -->
+        <div id="critical-question-freetext">
+          <textarea id="critical-answer-input" rows="2" placeholder="請輸入你的回答"></textarea>
+        </div>
       </div>
 
       <!-- 不需要澄清時顯示 -->

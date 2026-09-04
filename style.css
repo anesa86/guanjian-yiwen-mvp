@@ -214,6 +214,51 @@ pre {
   border-color: #2b6cb0;
 }
 
+.hidden {
+  display: none;
+}
+
+.live-status {
+  margin-top: 12px;
+  color: #2b6cb0;
+  font-size: 14px;
+}
+
+.live-error {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fee2e2;
+  border-left: 3px solid #b91c1c;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.live-error button {
+  margin-top: 8px;
+  background: #b91c1c;
+}
+
+.live-debug {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #111;
+  border-radius: 8px;
+}
+
+.live-debug h3 {
+  color: #fff;
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.live-debug pre {
+  color: #4ade80;
+  font-size: 12px;
+  max-height: 300px;
+  overflow: auto;
+  margin: 0;
+}
+
 .uncertainty-item {
   margin-bottom: 6px;
 }

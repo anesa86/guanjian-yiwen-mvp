@@ -12,7 +12,8 @@
 // 是為了讓 index.html 可以直接雙擊打開跑。
 // 這個檔案要排在 mock-data.js、ai-service.js 之後載入。
 
-const analyzeTask = window.AIService.analyzeTask;
+const analyzeTaskMock = window.AIService.analyzeTaskMock;
+const analyzeTaskLive = window.AIService.analyzeTaskLive;
 const buildExecutionContract = window.AIService.buildExecutionContract;
 const executeTask = window.AIService.executeTask;
 const verifyResult = window.AIService.verifyResult;
@@ -23,6 +24,9 @@ const state = {
   taskInput: "",
   context: "",
   selectedCaseId: "caseC", // 預設案例 C，可透過畫面 1 的按鈕切換
+  // mode 目前固定是 "live"，這一步（階段 7 第一小步）還沒有做 Live/Demo
+  // 切換的開關，那是下一步的事。先把這個狀態欄位建起來，之後直接用。
+  mode: "live",
   analysisResult: null,
   userAnswer: null,
   contract: null,
@@ -69,7 +73,24 @@ function showScreen(id) {
 }
 
 // ---------- 畫面 1：任務輸入 ----------
-document.getElementById("btn-start-check").addEventListener("click", async () => {
+//
+// 目前固定走 Live AI：成功後把計分後的結果交給既有 renderScreen2。
+// 這一步不進入工作契約 / 執行 / 驗證。
+// 失敗時顯示錯誤訊息跟「重新嘗試」按鈕。
+
+const liveStatusEl = document.getElementById("live-status");
+const liveErrorEl = document.getElementById("live-error");
+const liveErrorTextEl = document.getElementById("live-error-text");
+const liveDebugEl = document.getElementById("live-debug");
+const liveDebugContentEl = document.getElementById("live-debug-content");
+
+function hideLiveStatusBlocks() {
+  liveStatusEl.classList.add("hidden");
+  liveErrorEl.classList.add("hidden");
+  liveDebugEl.classList.add("hidden");
+}
+
+async function runLiveAnalysis() {
   const taskInput = document.getElementById("task-input").value.trim();
   const context = document.getElementById("context-input").value.trim();
 
@@ -78,22 +99,34 @@ document.getElementById("btn-start-check").addEventListener("click", async () =>
     return;
   }
 
-  state.taskInput = taskInput;
-  state.context = context;
-
   const btn = document.getElementById("btn-start-check");
+
+  hideLiveStatusBlocks();
   btn.disabled = true;
   btn.textContent = "分析中...";
+  liveStatusEl.classList.remove("hidden");
 
-  const analysisResult = await analyzeTask(taskInput, context, state.selectedCaseId);
-  state.analysisResult = analysisResult;
+  try {
+    const result = await analyzeTaskLive(taskInput, context);
 
-  btn.disabled = false;
-  btn.textContent = "開始預檢";
+    state.taskInput = taskInput;
+    state.context = context;
+    state.analysisResult = result;
+    hideLiveStatusBlocks();
+    renderScreen2(result);
+    showScreen("screen-2");
+  } catch (err) {
+    liveErrorEl.classList.remove("hidden");
+    liveErrorTextEl.textContent = err.message || "AI 預檢暫時無法連線，請重試";
+  } finally {
+    liveStatusEl.classList.add("hidden");
+    btn.disabled = false;
+    btn.textContent = "開始預檢";
+  }
+}
 
-  renderScreen2(analysisResult);
-  showScreen("screen-2");
-});
+document.getElementById("btn-start-check").addEventListener("click", runLiveAnalysis);
+document.getElementById("btn-retry-live").addEventListener("click", runLiveAnalysis);
 
 // ---------- 畫面 2：工作預檢 / 關鍵一問 ----------
 function renderScreen2(analysisResult) {
@@ -131,19 +164,31 @@ function renderScreen2(analysisResult) {
     document.getElementById("critical-question-reason").textContent =
       analysisResult.criticalIssue.reason;
 
-    // 依照 criticalIssue.answerOptions 動態產生按鈕，
-    // 而不是寫死在 HTML 裡，之後其他案例如果也有明確選項，可以直接重用這段邏輯。
+    // Live 模式沒有模型給的選項，用既有自由文字框；這一步不送出、不進契約。
+    // Demo/mock 若帶 answerOptions，仍動態產生按鈕（目前主流程是 Live）。
     const optionsContainer = document.getElementById("critical-question-options");
+    const freeTextEl = document.getElementById("critical-question-freetext");
     optionsContainer.innerHTML = "";
-    (analysisResult.criticalIssue.answerOptions || []).forEach((option) => {
-      const btn = document.createElement("button");
-      btn.textContent = option.label;
-      btn.addEventListener("click", async () => {
-        state.userAnswer = option.id;
-        await goToContract();
+
+    const options = analysisResult.criticalIssue.answerOptions || [];
+    const useFreeText = state.mode === "live" || options.length === 0;
+
+    if (useFreeText) {
+      optionsContainer.classList.add("hidden");
+      if (freeTextEl) freeTextEl.classList.remove("hidden");
+    } else {
+      if (freeTextEl) freeTextEl.classList.add("hidden");
+      optionsContainer.classList.remove("hidden");
+      options.forEach((option) => {
+        const btn = document.createElement("button");
+        btn.textContent = option.label;
+        btn.addEventListener("click", async () => {
+          state.userAnswer = option.id;
+          await goToContract();
+        });
+        optionsContainer.appendChild(btn);
       });
-      optionsContainer.appendChild(btn);
-    });
+    }
   } else {
     heroPanel.classList.add("hidden");
     skipPanel.classList.remove("hidden");
@@ -219,6 +264,7 @@ document.getElementById("btn-restart").addEventListener("click", () => {
   document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
   Object.keys(state).forEach((k) => (state[k] = null));
   state.selectedCaseId = "caseC";
+  state.mode = "live";
   showScreen("screen-1");
 });
 

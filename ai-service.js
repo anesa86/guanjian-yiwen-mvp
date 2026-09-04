@@ -60,17 +60,39 @@ function calculateImpactScore(affectedAspects = []) {
   }, 0);
 }
 
+// 把模型（或 mock）給的 uncertainties 補上 impactScore，並選出關鍵一問。
+// mock 與 Live 共用這段，分數永遠不是模型決定的。
+function scoreAndSelectCriticalIssue(confirmed, uncertainties) {
+  const uncertaintiesWithScore = (uncertainties || []).map((u) => ({
+    ...u,
+    impactScore: calculateImpactScore(u.affectedAspects),
+  }));
+
+  const sorted = [...uncertaintiesWithScore].sort(
+    (a, b) => b.impactScore - a.impactScore
+  );
+  const topIssue = sorted[0];
+  const needsClarification =
+    !!topIssue && topIssue.impactScore >= IMPACT_THRESHOLD;
+
+  return {
+    confirmed: confirmed || [],
+    uncertainties: uncertaintiesWithScore,
+    needsClarification,
+    criticalIssue: needsClarification ? topIssue : null,
+  };
+}
+
 // 模擬網路延遲，之後真的接 API 時可以直接刪掉這個
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // ------------------------------------------------------------
-// 1. analyzeTask(taskInput, context, caseId)
+// 1. analyzeTaskMock(taskInput, context, caseId)
 //
-// caseId：目前 mock 階段專用，指定要用 mock-data.js 裡哪一個案例的資料
-// （例如 "caseA" ~ "caseF"）。之後接真 API 時，這個參數會拿掉，
-// 因為屆時是真的分析 taskInput/context 的內容，不需要事先指定案例。
+// caseId：指定要用 mock-data.js 裡哪一個案例的資料
+// （例如 "caseA" ~ "caseF"）。Demo 模式會用這個函式。
 //
 // 回傳格式：
 // {
@@ -81,33 +103,60 @@ function delay(ms) {
 //   criticalIssue: 上面 uncertainties 其中一項（分數最高且超過門檻），或 null
 // }
 // ------------------------------------------------------------
-async function analyzeTask(taskInput, context, caseId) {
+async function analyzeTaskMock(taskInput, context, caseId) {
   await delay(600);
 
   const mockCase = allCases[caseId] || allCases.caseC;
-
-  // 幫每個不確定事項計算分數（這一步不管 mock 或真 API 都會做，
-  // 因為分數永遠是我們自己算的，不是模型給的）
-  const uncertaintiesWithScore = mockCase.uncertainties.map((u) => ({
-    ...u,
-    impactScore: calculateImpactScore(u.affectedAspects),
-  }));
-
-  // 找出「分數最高，且超過門檻」的那一項
-  const sorted = [...uncertaintiesWithScore].sort(
-    (a, b) => b.impactScore - a.impactScore
+  const scored = scoreAndSelectCriticalIssue(
+    mockCase.confirmed,
+    mockCase.uncertainties
   );
-  const topIssue = sorted[0];
-  const needsClarification =
-    !!topIssue && topIssue.impactScore >= IMPACT_THRESHOLD;
 
   return {
     caseId,
-    confirmed: mockCase.confirmed,
-    uncertainties: uncertaintiesWithScore,
-    needsClarification,
-    criticalIssue: needsClarification ? topIssue : null,
+    ...scored,
   };
+}
+
+// ------------------------------------------------------------
+// analyzeTaskLive(taskInput, context)
+//
+// 這是這次新增的「真的呼叫 API」版本。
+// 不接受 caseId 參數 —— Live 模式下模型必須真的分析 taskInput/context 的
+// 實際內容，不能用案例代號去查表。
+//
+// server 只回 { confirmed, uncertainties }（含 affectedAspects）。
+// impactScore / needsClarification / criticalIssue 在前端用跟 mock 同一套規則補上。
+//
+// 失敗時：丟出一個 Error，訊息盡量簡短、給使用者看得懂的中文，
+// 讓 app.js 可以直接把 err.message 顯示出來。
+// ------------------------------------------------------------
+async function analyzeTaskLive(taskInput, context) {
+  let response;
+  try {
+    response = await fetch("http://localhost:3000/api/analyze-task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ taskInput, context }),
+    });
+  } catch (networkErr) {
+    // 通常是 server 根本沒開，或網路完全不通
+    throw new Error("AI 預檢暫時無法連線，請重試");
+  }
+
+  let body;
+  try {
+    body = await response.json();
+  } catch (parseErr) {
+    throw new Error("AI 預檢暫時無法連線，請重試");
+  }
+
+  if (!response.ok || !body.success) {
+    throw new Error("AI 預檢暫時無法連線，請重試");
+  }
+
+  // body.data 應該長得像 { confirmed: [...], uncertainties: [...] }
+  return scoreAndSelectCriticalIssue(body.data.confirmed, body.data.uncertainties);
 }
 
 // ------------------------------------------------------------
@@ -180,9 +229,10 @@ async function verifyResult(result, contract) {
   };
 }
 
-// 掛到全域變數上，讓 app.js 可以直接用 AIService.analyzeTask(...) 呼叫
+// 掛到全域變數上，讓 app.js 可以直接用 AIService.analyzeTaskMock(...) 呼叫
 window.AIService = {
-  analyzeTask,
+  analyzeTaskMock,
+  analyzeTaskLive,
   buildExecutionContract,
   executeTask,
   verifyResult,

@@ -7,6 +7,15 @@ const PORT = 3000;
 
 // 讓 server 可以讀懂瀏覽器傳來的 JSON 格式資料
 app.use(express.json());
+// 允許瀏覽器（包含用 file:// 打開的網頁）呼叫這個 server。
+// 沒有這段，瀏覽器會因為 CORS 安全機制直接擋掉請求，
+// 連 server 有沒有正常運作都測試不到。
+app.use((req, res, next) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    next();
+  });
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
