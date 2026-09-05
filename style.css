@@ -415,10 +415,18 @@ pre {
   color: #15803d;
   border: 1px solid #bbf7d0;
 }
-#btn-copy-result {
-  margin-top: 12px;
-  padding: 6px 14px;
-  font-size: 13px;
+button#btn-copy-result {
+  margin-top: 12px !important;
+  padding: 6px 14px !important;
+  font-size: 13px !important;
+  background: #fff !important;
+  color: #3f3f46 !important;
+  border: 1px solid #d4d4d8 !important;
+  border-radius: 8px;
+}
+
+button#btn-copy-result:hover {
+  background: #f4f4f5 !important;
 }
 
 .copy-feedback {
