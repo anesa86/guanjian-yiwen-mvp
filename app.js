@@ -409,6 +409,17 @@ document.getElementById("btn-execute").addEventListener("click", async () => {
     showScreen("screen-4");
   }
 });
+// 複製成果按鈕：Mock跟Live共用，因為state.executionResult兩種模式都有存
+document.getElementById("btn-copy-result").addEventListener("click", async () => {
+  const feedback = document.getElementById("copy-feedback");
+  try {
+    await navigator.clipboard.writeText(state.executionResult || "");
+    feedback.classList.remove("hidden");
+    setTimeout(() => feedback.classList.add("hidden"), 2000);
+  } catch (err) {
+    alert("複製失敗，請手動選取文字複製");
+  }
+});
 
 // Mock 版渲染（跟原本一模一樣，只是改個名字方便跟 Live 版分開）
 function renderScreen4Mock(resultText, verification) {
@@ -452,12 +463,11 @@ function renderScreen4Live(resultText, verification) {
   document.getElementById("verification-score").textContent =
     `${verification.passedCount} / ${verification.totalCount} 條件符合`;
 
-  const overallEl = document.getElementById("verification-overall-status");
-  const allPassed = verification.passedCount === verification.totalCount;
-  overallEl.textContent = allPassed ? "驗證通過 ✓" : "結果需要人工確認";
-  overallEl.className = "verification-overall " + (allPassed ? "all-passed" : "needs-review");
-}
-
+    const overallEl = document.getElementById("verification-overall-status");
+    const allPassed = verification.passedCount === verification.totalCount;
+    overallEl.textContent = allPassed ? "契約檢查通過 ✓" : "結果需要人工確認";
+    overallEl.className = "verification-overall " + (allPassed ? "all-passed" : "needs-review");
+  }
 // ---------- 重新開始 ----------
 document.getElementById("btn-restart").addEventListener("click", () => {
   document.getElementById("task-input").value = "";

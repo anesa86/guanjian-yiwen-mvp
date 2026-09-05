@@ -398,3 +398,15 @@ pre {
   background: #dcfce7;
   color: #166534;
 }
+#btn-copy-result {
+  margin-top: 12px;
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+.copy-feedback {
+  margin-left: 10px;
+  color: #15803d;
+  font-weight: 600;
+  font-size: 13px;
+}
