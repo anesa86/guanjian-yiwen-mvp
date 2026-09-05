@@ -26,7 +26,6 @@ const IMPACT_THRESHOLD = window.AIService.IMPACT_THRESHOLD;
 const state = {
   taskInput: "",
   context: "",
-  selectedCaseId: "caseC",
   mode: "live",
   analysisResult: null,
   userAnswer: null,
@@ -36,23 +35,45 @@ const state = {
   executionResult: null,
 };
 
-// ---------- 案例選擇（Mock 階段專用）----------
-(function renderCaseSelector() {
-  const container = document.getElementById("case-selector");
-  const cases = window.MockData.cases;
-  Object.keys(cases).forEach((caseId) => {
+// ---------- 範例任務（正式產品用，純粹示範怎麼寫，不切換任何模式）----------
+// 這三組範例只負責把文字填進輸入框，使用者仍要自己按「開始預檢」，
+// 而且一律走 analyzeTaskLive，不會因為點了範例就變成查表的 Mock 結果。
+const EXAMPLE_TASKS = [
+  {
+    label: "行銷提案",
+    taskInput: "幫我做好新品提案，等等寄給代理商。",
+    context:
+      "1. 會議紀錄：本季主要目標是舊客回購，不考慮 KOL。\n" +
+      "2. 舊版 brief：預算最高 30 萬，TA 為 18–24 歲。\n" +
+      "3. 最新團隊訊息：主管今天提到 micro influencer 似乎可以測試看看。",
+  },
+  {
+    label: "信件改寫",
+    taskInput: "把這封客戶信件的語氣改得更正式一點。",
+    context:
+      "原信件內容：嗨，你們的貨到現在都還沒到，到底什麼時候會到啦？我等超久了，快點處理一下謝謝。",
+  },
+  {
+    label: "客戶退款",
+    taskInput: "幫我回覆這位客戶並處理他的退款要求。",
+    context:
+      "客戶表示收到的商品外盒破損，要求全額退款。訂單已確認是在 7 天內購買，" +
+      "客服紀錄中有訂單編號與商品問題說明。目前主管尚未說明這筆訂單可直接核准的退款金額範圍，" +
+      "客服人員也沒有收到本次個案的退款授權。",
+  },
+];
+
+(function renderExampleTasks() {
+  const container = document.getElementById("example-task-selector");
+  EXAMPLE_TASKS.forEach((example) => {
     const btn = document.createElement("button");
     btn.type = "button";
-    btn.className = "case-btn";
-    btn.textContent = cases[caseId].label;
+    btn.className = "example-btn";
+    btn.textContent = example.label;
     btn.addEventListener("click", () => {
-      const mockCase = cases[caseId];
-      document.getElementById("task-input").value = mockCase.taskInput;
-      document.getElementById("context-input").value = mockCase.context;
-      state.selectedCaseId = caseId;
-
-      document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
-      btn.classList.add("selected");
+      document.getElementById("task-input").value = example.taskInput;
+      document.getElementById("context-input").value = example.context;
+      // 只填文字，不自動送出，使用者仍要自己按「開始預檢」
     });
     container.appendChild(btn);
   });
@@ -406,9 +427,7 @@ function renderScreen4Live(resultText, verification) {
 document.getElementById("btn-restart").addEventListener("click", () => {
   document.getElementById("task-input").value = "";
   document.getElementById("context-input").value = "";
-  document.querySelectorAll(".case-btn").forEach((b) => b.classList.remove("selected"));
   Object.keys(state).forEach((k) => (state[k] = null));
-  state.selectedCaseId = "caseC";
   state.mode = "live";
   state.clarifications = [];
   state.pendingQuestions = [];

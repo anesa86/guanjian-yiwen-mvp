@@ -13,24 +13,17 @@
   </header>
 
   <main id="app">
-
     <!-- 畫面 1：任務輸入 -->
     <section id="screen-1" class="screen active" style="display: block;">
       <h2>1. 任務輸入</h2>
 
-      <label>快速套用測試案例（可直接點選，或自行修改下方欄位）</label>
-      <div id="case-selector" class="case-buttons"></div>
-
       <label for="task-input">A. 你希望 AI 完成什麼？</label>
-      <textarea id="task-input" rows="2">幫我做好新品提案，等等寄給代理商。</textarea>
+      <textarea id="task-input" rows="2" placeholder="例如：幫我回覆一封客戶信件、幫我排下週的行銷計畫……"></textarea>
 
       <label for="context-input">B. 背景資訊（直接貼文字即可）</label>
-      <textarea id="context-input" rows="6">1. 會議紀錄：本季主要目標是舊客回購，不考慮 KOL。
-2. 舊版 brief：預算最高 30 萬，TA 為 18–24 歲。
-3. 最新團隊訊息：主管今天提到 micro influencer 似乎可以測試看看。</textarea>
+      <textarea id="context-input" rows="6" placeholder="把相關的會議紀錄、信件內容、既有資料貼在這裡"></textarea>
 
       <button id="btn-start-check">開始預檢</button>
-      <p class="hint-text">（欄位已預填案例 C 的內容，可直接按「開始預檢」測試，或先點上方案例按鈕切換其他情境）</p>
 
       <!-- Live 分析中的狀態與錯誤；成功後會切到畫面 2 -->
       <div id="live-status" class="live-status hidden">
@@ -43,6 +36,12 @@
       <div id="live-debug" class="live-debug hidden">
         <h3>Debug：API 回傳結果</h3>
         <pre id="live-debug-content"></pre>
+      </div>
+
+      <!-- 範例任務：純粹填文字，不切模式，一律走 Live 分析 -->
+      <div class="example-tasks">
+        <p class="example-tasks-label">不知道怎麼開始？試試範例任務</p>
+        <div id="example-task-selector" class="example-buttons"></div>
       </div>
     </section>
 

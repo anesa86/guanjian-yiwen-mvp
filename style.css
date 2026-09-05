@@ -215,7 +215,37 @@ pre {
   gap: 8px;
   margin-bottom: 8px;
 }
+.example-tasks {
+  margin-top: 16px;
+}
 
+.example-tasks-label {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+.example-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.example-buttons .example-btn {
+  flex: 1;
+  padding: 10px 12px;
+  background: #eef2f7;
+  color: #333;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.example-buttons .example-btn:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
 .case-btn {
   margin-top: 0;
   padding: 6px 12px;
