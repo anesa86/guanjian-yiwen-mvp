@@ -157,14 +157,48 @@ function renderScreen2(analysisResult) {
 
   const uncertaintyList = document.getElementById("uncertainty-list");
   uncertaintyList.innerHTML = "";
+
+  // 面向名稱對照表：模型輸出的英文代號 → 中文顯示
+  const ASPECT_LABELS = {
+    goal: "核心目標",
+    external: "對外/不可逆",
+    strategy: "策略",
+    budget: "預算",
+    audience: "受眾",
+    deadline: "時程",
+    format: "格式",
+  };
+
   analysisResult.uncertainties.forEach((u) => {
     const li = document.createElement("li");
     li.className = "uncertainty-item";
     const isHigh = u.impactScore >= IMPACT_THRESHOLD;
-    li.innerHTML = `${u.description}
-      <span class="impact-tag ${isHigh ? "impact-high" : "impact-low"}">
-        影響分數 ${u.impactScore}
-      </span>`;
+
+    // 證據列表（可能是空陣列，missing類型常見沒有evidence）
+    const evidenceHtml = (u.evidence || [])
+      .map((e) => `<li>「${e.value}」— 來源：${e.source}</li>`)
+      .join("");
+
+    // 影響面向的badge
+    const aspectsHtml = (u.affectedAspects || [])
+      .map((a) => {
+        const weight = { goal: 5, external: 5, strategy: 4, budget: 4, audience: 3, deadline: 3, format: 1 }[a] || 0;
+        return `<span class="aspect-tag">${ASPECT_LABELS[a] || a} +${weight}</span>`;
+      })
+      .join("");
+
+    li.innerHTML = `
+      <p class="uncertainty-desc">${u.description}</p>
+      ${evidenceHtml ? `<div class="evidence-block"><p class="trace-label">證據</p><ul class="evidence-list">${evidenceHtml}</ul></div>` : ""}
+      <div class="aspect-block">
+        <p class="trace-label">影響面向</p>
+        <div class="aspect-tags">${aspectsHtml}</div>
+      </div>
+      <p class="decision-line ${isHigh ? "decision-ask" : "decision-proceed"}">
+        ${u.impactScore} 分 ${isHigh ? "≥" : "<"} 門檻 ${IMPACT_THRESHOLD} 分
+        → ${isHigh ? "值得打斷，觸發關鍵一問" : "不打斷，不影響執行"}
+      </p>
+    `;
     uncertaintyList.appendChild(li);
   });
 
