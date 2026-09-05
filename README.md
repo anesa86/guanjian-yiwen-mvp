@@ -9,6 +9,9 @@ AI 正在從「回答問題」走向「真正執行工作」。這個轉變帶�
 但反過來，如果 AI 對任何一點不確定性都停下來詢問，又會造成過度打斷，讓「AI 幫忙做事」變得比自己做還麻煩。
 
 真正該回答的問題不是「AI 該不該問問題」，而是：**什麼樣的不確定性，值得打斷使用者？**
+這個問題也與近期 LLM Agent 研究所關注的「何時值得向使用者澄清」一致。2026 ACL Findings 的 *Structured Uncertainty guided Clarification for LLM Agents* 將模糊／不完整指令下的澄清視為 uncertainty 與 questioning cost 之間的取捨，並探討如何只在有資訊價值時提出問題。
+
+本專案不是重現該論文方法，而是把相同的核心問題帶進一般知識工作場景，設計成一個透明、可檢視的 Execution Readiness Gate。
 
 ## 2. 解決方案
 
