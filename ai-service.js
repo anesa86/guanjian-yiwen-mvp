@@ -158,6 +158,74 @@ async function analyzeTaskLive(taskInput, context) {
   // body.data 應該長得像 { confirmed: [...], uncertainties: [...] }
   return scoreAndSelectCriticalIssue(body.data.confirmed, body.data.uncertainties);
 }
+// ------------------------------------------------------------
+// executeTaskLive(contract)
+//
+// 打 /api/execute-task，讓 server 呼叫 Anthropic 根據工作契約
+// 產生實際的工作成果。回傳一段純文字。
+//
+// 失敗時：丟出一個 Error，訊息盡量簡短、給使用者看得懂的中文。
+// ------------------------------------------------------------
+async function executeTaskLive(contract) {
+  let response;
+  try {
+    response = await fetch("http://localhost:3000/api/execute-task", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contract }),
+    });
+  } catch (networkErr) {
+    throw new Error("AI 執行暫時無法連線，請重試");
+  }
+
+  let body;
+  try {
+    body = await response.json();
+  } catch (parseErr) {
+    throw new Error("AI 執行暫時無法連線，請重試");
+  }
+
+  if (!response.ok || !body.success) {
+    throw new Error(body.error || "AI 執行暫時無法連線，請重試");
+  }
+
+  return body.result;
+}
+
+// ------------------------------------------------------------
+// verifyResultLive(result, contract)
+//
+// 打 /api/verify-result，讓 server 呼叫 Anthropic 逐項比對
+// 工作契約跟執行成果。回傳 { checks, passedCount, totalCount }。
+//
+// 失敗時：丟出一個 Error，訊息盡量簡短、給使用者看得懂的中文。
+// ------------------------------------------------------------
+async function verifyResultLive(result, contract) {
+  let response;
+  try {
+    response = await fetch("http://localhost:3000/api/verify-result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contract, result }),
+    });
+  } catch (networkErr) {
+    throw new Error("AI 驗證暫時無法連線，請重試");
+  }
+
+  let body;
+  try {
+    body = await response.json();
+  } catch (parseErr) {
+    throw new Error("AI 驗證暫時無法連線，請重試");
+  }
+
+  if (!response.ok || !body.success) {
+    throw new Error(body.error || "AI 驗證暫時無法連線，請重試");
+  }
+
+  // body.data 應該長得像 { checks, passedCount, totalCount }
+  return body.data;
+}
 
 // ------------------------------------------------------------
 // 2. buildExecutionContract(analysisResult, userAnswerId)
@@ -265,7 +333,9 @@ window.AIService = {
   buildExecutionContract,
   buildExecutionContractLive,
   executeTask,
+  executeTaskLive,
   verifyResult,
+  verifyResultLive,
   IMPACT_THRESHOLD,
 };
 

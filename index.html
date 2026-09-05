@@ -111,27 +111,35 @@
       <button id="btn-execute">開始執行</button>
     </section>
 
-    <!-- 畫面 4：成果 + 驗證 -->
-    <section id="screen-4" class="screen" style="display: none;">
-      <h2>4. 成果與驗證</h2>
-      <div class="result-grid">
-        <div class="panel">
-          <h3>AI 生成成果</h3>
-          <pre id="result-text"></pre>
-        </div>
-        <div class="panel">
-          <h3>執行檢查</h3>
-          <ul id="verification-list"></ul>
-          <p id="verification-score" class="score-label"></p>
-        </div>
-      </div>
-      <p class="mock-notice">
-        目前為 Mock 展示版：分析結果、契約與驗證皆為預先寫好的示範資料，
-        用來展示完整的「理解 → 澄清 → 執行 → 驗證」流程；
-        接上真實 AI API 後，這裡的內容將依實際輸入即時產生。
-      </p>
-      <button id="btn-restart">重新開始</button>
-    </section>
+        <!-- 畫面 4：成果 + 驗證 -->
+        <section id="screen-4" class="screen" style="display: none;">
+          <h2>4. 成果與驗證</h2>
+    
+          <!-- Live 執行中的兩階段等待狀態 -->
+          <p id="live-execute-status" class="live-status hidden">正在依工作契約產生成果…</p>
+          <p id="live-verify-status" class="live-status hidden">正在依工作契約驗證結果…</p>
+    
+          <div class="result-grid">
+            <div class="panel">
+              <h3>AI 生成成果</h3>
+              <pre id="result-text"></pre>
+            </div>
+            <div class="panel">
+              <h3>執行檢查</h3>
+              <ul id="verification-list"></ul>
+              <p id="verification-score" class="score-label"></p>
+              <p id="verification-overall-status" class="verification-overall"></p>
+            </div>
+          </div>
+    
+          <!-- Mock 展示版才顯示這行提示；Live 模式不顯示 -->
+          <p id="mock-notice" class="mock-notice">
+            目前為 Mock 展示版：分析結果、契約與驗證皆為預先寫好的示範資料，
+            用來展示完整的「理解 → 澄清 → 執行 → 驗證」流程；
+            接上真實 AI API 後，這裡的內容將依實際輸入即時產生。
+          </p>
+          <button id="btn-restart">重新開始</button>
+        </section>
 
   </main>
 

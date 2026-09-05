@@ -75,6 +75,37 @@ evidence 規則：
     }
   ]
 }`;
+// Execute 用的規則：只根據工作契約產生成果，不能編造契約沒提到的細節
+const EXECUTE_TASK_SYSTEM_PROMPT = `你是一個任務執行助手。使用者會給你一份「工作契約」，
+裡面包含原始工作任務（taskInput）、已確認事項（confirmedItems）、以及使用者對關鍵問題的澄清（clarifications）。
+
+你的工作是：根據這份工作契約，產生這個任務應該交付的實際工作成果。
+
+嚴格規則：
+- 只能根據契約裡實際出現的內容產生成果，不可以編造契約沒有提到的細節、公司規則或背景事實。
+- 成果的形式要符合任務類型本身（例如：會議邀請類任務產生邀請文字、客訴類任務產生客服回覆草稿、
+  提案類任務產生 proposal draft、摘要類任務產生摘要），你自己判斷最適合的形式，不需要遵循固定模板。
+- 只回傳成果內容本身的純文字，不要加上任何說明、標題、或 markdown 符號（例如不要用 \`\`\` 包起來）。`;
+
+// Verify 用的規則：逐項比對契約要求，只給 checks，passedCount/totalCount 由我們自己算
+const VERIFY_RESULT_SYSTEM_PROMPT = `你是一個任務驗證助手。使用者會給你一份「工作契約」跟根據這份契約產生的「執行成果」。
+
+你的工作是：把契約裡的 confirmedItems 跟 clarifications 每一項都轉換成一條檢查項目（requirement），
+逐一比對執行成果有沒有確實符合這項要求。
+
+規則：
+- 每一條檢查都要給 passed（true/false）跟 evidence（簡短說明依據）。
+- 不管 passed 是 true 或 false，evidence 都要具體：符合時說明成果裡哪裡有對應到；
+  不符合時說明成果裡缺了什麼、或寫錯了什麼。
+- 不要自己發明契約裡沒有的檢查項目。
+- 不要輸出 passedCount 或 totalCount，這些由我們自己的程式計算，與你無關。
+
+只回傳 JSON，不要有任何其他文字、不要加 markdown 的 \`\`\`json 標記，格式如下：
+{
+  "checks": [
+    { "requirement": "...", "passed": true, "evidence": "..." }
+  ]
+}`;
 
 // 最簡單的測試路徑，先確認 server 有沒有正常開機
 app.get("/api/health", (req, res) => {
@@ -128,6 +159,88 @@ app.post("/api/analyze-task", async (req, res) => {
   } catch (err) {
     console.error("呼叫 API 時發生錯誤：", err.message);
     res.status(500).json({ success: false, error: err.message });
+  }
+});
+// 執行路徑：接收工作契約，讓 Claude 產生對應的工作成果
+app.post("/api/execute-task", async (req, res) => {
+  const { contract } = req.body;
+
+  if (!contract) {
+    return res.status(400).json({ success: false, error: "缺少 contract" });
+  }
+
+  try {
+    console.log("正在依契約產生成果：", contract.taskInput);
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
+      system: EXECUTE_TASK_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `工作契約：\n${JSON.stringify(contract, null, 2)}`,
+        },
+      ],
+    });
+
+    const result = message.content[0].text.trim();
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error("執行任務時發生錯誤：", err.message);
+    res.status(500).json({ success: false, error: "AI 執行暫時無法連線，請重試" });
+  }
+});
+
+// 驗證路徑：接收契約與執行成果，讓 Claude 逐項檢查是否符合
+app.post("/api/verify-result", async (req, res) => {
+  const { contract, result } = req.body;
+
+  if (!contract || !result) {
+    return res.status(400).json({ success: false, error: "缺少 contract 或 result" });
+  }
+
+  try {
+    console.log("正在驗證執行成果...");
+    const message = await anthropic.messages.create({
+      model: "claude-sonnet-4-5",
+      max_tokens: 1024,
+      system: VERIFY_RESULT_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: "user",
+          content: `工作契約：\n${JSON.stringify(contract, null, 2)}\n\n執行成果：\n${result}`,
+        },
+      ],
+    });
+
+    let rawText = message.content[0].text.trim();
+    if (rawText.startsWith("```")) {
+      rawText = rawText.replace(/^```(json)?\n?/, "").replace(/\n?```$/, "");
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (parseErr) {
+      console.error("無法解析驗證結果的 JSON：", rawText);
+      return res.status(500).json({
+        success: false,
+        error: "模型回傳的驗證結果不是有效的 JSON",
+        rawText,
+      });
+    }
+
+    // passedCount/totalCount 我們自己算，不信任模型算的數字
+    const checks = parsed.checks || [];
+    const passedCount = checks.filter((c) => c.passed).length;
+
+    res.json({
+      success: true,
+      data: { checks, passedCount, totalCount: checks.length },
+    });
+  } catch (err) {
+    console.error("驗證結果時發生錯誤：", err.message);
+    res.status(500).json({ success: false, error: "AI 驗證暫時無法連線，請重試" });
   }
 });
 

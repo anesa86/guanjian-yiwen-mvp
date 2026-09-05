@@ -17,20 +17,20 @@ const analyzeTaskLive = window.AIService.analyzeTaskLive;
 const buildExecutionContract = window.AIService.buildExecutionContract;
 const buildExecutionContractLive = window.AIService.buildExecutionContractLive;
 const executeTask = window.AIService.executeTask;
+const executeTaskLive = window.AIService.executeTaskLive;
 const verifyResult = window.AIService.verifyResult;
+const verifyResultLive = window.AIService.verifyResultLive;
 const IMPACT_THRESHOLD = window.AIService.IMPACT_THRESHOLD;
 
 // 保存這一輪流程的狀態，畫面之間互相傳遞用
 const state = {
   taskInput: "",
   context: "",
-  selectedCaseId: "caseC", // 預設案例 C，可透過畫面 1 的按鈕切換
+  selectedCaseId: "caseC",
   mode: "live",
   analysisResult: null,
-  userAnswer: null, // Mock 專用：使用者按下的按鈕選項 id（例如 "yes"/"no"）
-  // Live 專用：還沒問過、分數過門檻的 uncertainties 佇列，依分數高到低排列
+  userAnswer: null,
   pendingQuestions: [],
-  // Live 專用：{ field, question, answer } 陣列，累積每一輪回答
   clarifications: [],
   contract: null,
   executionResult: null,
@@ -68,10 +68,6 @@ function showScreen(id) {
 }
 
 // ---------- 畫面 1：任務輸入 ----------
-//
-// 目前固定走 Live AI：成功後把計分後的結果交給 renderScreen2。
-// 失敗時顯示錯誤訊息跟「重新嘗試」按鈕。
-
 const liveStatusEl = document.getElementById("live-status");
 const liveErrorEl = document.getElementById("live-error");
 const liveErrorTextEl = document.getElementById("live-error-text");
@@ -108,8 +104,6 @@ async function runLiveAnalysis() {
     state.analysisResult = result;
     state.clarifications = [];
 
-    // 把所有「分數過門檻」的 uncertainty 依分數高到低排好，
-    // 存成佇列，畫面 2 一次只顯示佇列最前面那一題。
     state.pendingQuestions = (result.uncertainties || [])
       .filter((u) => u.impactScore >= IMPACT_THRESHOLD)
       .sort((a, b) => b.impactScore - a.impactScore);
@@ -156,7 +150,6 @@ function renderScreen2(analysisResult) {
   const heroPanel = document.getElementById("critical-question-panel");
   const skipPanel = document.getElementById("no-clarification-panel");
 
-  // Live 模式：畫面要顯示的問題，是佇列最前面那一個（不是固定的 criticalIssue）
   const currentQuestion =
     state.mode === "live" ? state.pendingQuestions[0] : analysisResult.criticalIssue;
   const stillNeedsClarification =
@@ -199,7 +192,6 @@ function renderScreen2(analysisResult) {
   }
 }
 
-// Live 模式：按下「確認回答」送出這一題，判斷還有沒有下一題
 document.getElementById("btn-submit-live-answer").addEventListener("click", () => {
   const answerInput = document.getElementById("critical-answer-input");
   const answer = answerInput.value.trim();
@@ -234,7 +226,6 @@ async function goToLiveContract() {
   showScreen("screen-3");
 }
 
-// 不需要澄清，直接建立契約（Mock 專用路徑）
 document.getElementById("btn-skip-question").addEventListener("click", async () => {
   state.userAnswer = null;
   await goToContract();
@@ -248,7 +239,6 @@ async function goToContract() {
 }
 
 // ---------- 畫面 3：工作契約 ----------
-// Mock 契約跟 Live 契約長得不一樣，用 contract._mode 判斷要渲染哪一種。
 function renderScreen3(contract) {
   const mockPanel = document.getElementById("mock-contract-panel");
   const livePanel = document.getElementById("live-contract-panel");
@@ -299,25 +289,67 @@ function renderLiveContract(contract) {
   });
 }
 
+// ---------- 畫面 4：成果 + 驗證 ----------
+//
+// Mock 跟 Live 用 state.contract._mode 判斷走哪條路，兩條路互不干擾。
+
+const liveExecuteStatusEl = document.getElementById("live-execute-status");
+const liveVerifyStatusEl = document.getElementById("live-verify-status");
+const mockNoticeEl = document.getElementById("mock-notice");
+
 document.getElementById("btn-execute").addEventListener("click", async () => {
   const btn = document.getElementById("btn-execute");
   btn.disabled = true;
-  btn.textContent = "執行中...";
 
-  const resultText = await executeTask(state.contract);
-  state.executionResult = resultText;
+  if (state.contract._mode === "live") {
+    // ---------- Live 模式：Execute → Verify 兩階段 ----------
+    mockNoticeEl.classList.add("hidden");
+    liveExecuteStatusEl.classList.remove("hidden");
+    liveVerifyStatusEl.classList.add("hidden");
+    btn.textContent = "執行中...";
 
-  const verification = await verifyResult(resultText, state.contract);
+    try {
+      const resultText = await executeTaskLive(state.contract);
+      state.executionResult = resultText;
 
-  btn.disabled = false;
-  btn.textContent = "開始執行";
+      liveExecuteStatusEl.classList.add("hidden");
+      liveVerifyStatusEl.classList.remove("hidden");
 
-  renderScreen4(resultText, verification);
-  showScreen("screen-4");
+      const verification = await verifyResultLive(resultText, state.contract);
+
+      liveVerifyStatusEl.classList.add("hidden");
+      btn.disabled = false;
+      btn.textContent = "開始執行";
+
+      renderScreen4Live(resultText, verification);
+      showScreen("screen-4");
+    } catch (err) {
+      liveExecuteStatusEl.classList.add("hidden");
+      liveVerifyStatusEl.classList.add("hidden");
+      btn.disabled = false;
+      btn.textContent = "開始執行";
+      alert(err.message || "執行或驗證暫時失敗，請重試");
+    }
+  } else {
+    // ---------- Mock 模式：完全維持原本邏輯 ----------
+    mockNoticeEl.classList.remove("hidden");
+    btn.textContent = "執行中...";
+
+    const resultText = await executeTask(state.contract);
+    state.executionResult = resultText;
+
+    const verification = await verifyResult(resultText, state.contract);
+
+    btn.disabled = false;
+    btn.textContent = "開始執行";
+
+    renderScreen4Mock(resultText, verification);
+    showScreen("screen-4");
+  }
 });
 
-// ---------- 畫面 4：成果 + 驗證 ----------
-function renderScreen4(resultText, verification) {
+// Mock 版渲染（跟原本一模一樣，只是改個名字方便跟 Live 版分開）
+function renderScreen4Mock(resultText, verification) {
   document.getElementById("result-text").textContent = resultText;
 
   const list = document.getElementById("verification-list");
@@ -330,6 +362,38 @@ function renderScreen4(resultText, verification) {
 
   document.getElementById("verification-score").textContent =
     `${verification.passedCount} / ${verification.totalCount} 條件符合`;
+
+  document.getElementById("verification-overall-status").textContent = "";
+  document.getElementById("verification-overall-status").className = "verification-overall";
+}
+
+// Live 版渲染：checks 裡有 requirement/passed/evidence，
+// 沒通過的項目要額外顯示原因跟「建議：請人工確認或重新執行」
+function renderScreen4Live(resultText, verification) {
+  document.getElementById("result-text").textContent = resultText;
+
+  const list = document.getElementById("verification-list");
+  list.innerHTML = "";
+
+  verification.checks.forEach((item) => {
+    const li = document.createElement("li");
+    if (item.passed) {
+      li.textContent = `✓ ${item.requirement}（${item.evidence}）`;
+    } else {
+      li.className = "verification-item-fail";
+      li.innerHTML = `✗ 未符合：${item.requirement}（${item.evidence}）
+        <div class="verification-suggestion">建議：請人工確認或重新執行</div>`;
+    }
+    list.appendChild(li);
+  });
+
+  document.getElementById("verification-score").textContent =
+    `${verification.passedCount} / ${verification.totalCount} 條件符合`;
+
+  const overallEl = document.getElementById("verification-overall-status");
+  const allPassed = verification.passedCount === verification.totalCount;
+  overallEl.textContent = allPassed ? "驗證通過 ✓" : "結果需要人工確認";
+  overallEl.className = "verification-overall " + (allPassed ? "all-passed" : "needs-review");
 }
 
 // ---------- 重新開始 ----------

@@ -152,7 +152,28 @@ button:hover {
   font-size: 13px;
   line-height: 1.6;
 }
+.verification-overall {
+  margin-top: 8px;
+  font-weight: 600;
+}
 
+.verification-overall.all-passed {
+  color: #15803d;
+}
+
+.verification-overall.needs-review {
+  color: #b45309;
+}
+
+.verification-item-fail {
+  color: #b91c1c;
+}
+
+.verification-suggestion {
+  color: #92400e;
+  font-size: 13px;
+  margin: 2px 0 8px 20px;
+}
 .ready-label {
   color: #15803d;
   font-weight: 700;
