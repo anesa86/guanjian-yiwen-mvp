@@ -2,6 +2,14 @@
 > BUILDMODE 2026 · Track 03 Future of Work
 
 > AI 執行工作前，先判斷這個任務有沒有真正值得打斷使用者的不確定性；只問最高影響的那一題，確認後才建立契約、執行、驗證。
+### 30 秒看懂
+
+**不是 prompt wrapper：** LLM 只負責辨識已知資訊、缺漏與衝突；是否要打斷使用者，由程式中的 deterministic policy 計算 ASK / PROCEED。
+
+**Live MVP：** HTML/CSS/JS + Node.js/Express + Anthropic Claude API，Analyze → Clarify → Execution Contract → Execute → Contract Check 全流程皆走真實 API。
+
+**快速啟動：**
+`npm install` → 設定 `ANTHROPIC_API_KEY` → `node server.js` → 開啟 `index.html`
 
 ## 1. 問題
 
@@ -33,15 +41,6 @@ AI 正在從「回答問題」走向「真正執行工作」。這個轉變帶�
 
 **官方 100–200 字摘要（定稿）：**
 > 當 AI 從回答走向真正執行工作，模糊意圖可能直接變成錯誤行動；但若每個不確定性都停下來詢問，又會造成過度打斷。「關鍵一問」是一個 AI 執行前的意圖預檢層：LLM 負責辨識缺漏、衝突與受影響面向，再由 deterministic policy 計算是否值得打斷，只在高影響時提出關鍵問題。使用者回答後，系統建立可追溯的工作契約，AI 依契約執行，並透過另一次模型呼叫檢查成果是否符合契約要求。
-
-### 30 秒看懂
-
-**不是 prompt wrapper：** LLM 只負責辨識已知資訊、缺漏與衝突；是否要打斷使用者，由程式中的 deterministic policy 計算 ASK / PROCEED。
-
-**Live MVP：** HTML/CSS/JS + Node.js/Express + Anthropic Claude API，Analyze → Clarify → Execution Contract → Execute → Contract Check 全流程皆走真實 API。
-
-**快速啟動：**
-`npm install` → 設定 `ANTHROPIC_API_KEY` → `node server.js` → 開啟 `index.html`
 
 ## 4. 系統流程
 
