@@ -155,7 +155,17 @@ function renderScreen2(analysisResult) {
     li.textContent = `${item.field}：${item.value}（來源：${item.source}）`;
     confirmedList.appendChild(li);
   });
-
+  // Decision Summary：先給結論，再看細節。純粹用deterministic的分數做計算，不是模型生成的。
+  const highCount = analysisResult.uncertainties.filter((u) => u.impactScore >= IMPACT_THRESHOLD).length;
+  const lowCount = analysisResult.uncertainties.length - highCount;
+  const summaryEl = document.getElementById("decision-summary");
+  if (analysisResult.uncertainties.length === 0) {
+    summaryEl.textContent = "沒有發現任何不確定事項，可直接執行。";
+  } else if (highCount === 0) {
+    summaryEl.textContent = `發現 ${lowCount} 個不確定事項，皆低於中斷門檻，可直接執行。`;
+  } else {
+    summaryEl.textContent = `發現 ${analysisResult.uncertainties.length} 個不確定事項，${highCount} 個需要澄清，${lowCount} 個可直接略過。`;
+  }
   const uncertaintyList = document.getElementById("uncertainty-list");
   uncertaintyList.innerHTML = "";
 
