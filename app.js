@@ -218,6 +218,7 @@ document.getElementById("btn-submit-live-answer").addEventListener("click", () =
 async function goToLiveContract() {
   const contract = await buildExecutionContractLive(
     state.taskInput,
+    state.context,
     state.analysisResult.confirmed,
     state.clarifications
   );
