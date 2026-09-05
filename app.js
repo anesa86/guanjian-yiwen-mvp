@@ -227,8 +227,13 @@ async function goToLiveContract() {
 }
 
 document.getElementById("btn-skip-question").addEventListener("click", async () => {
-  state.userAnswer = null;
-  await goToContract();
+  if (state.mode === "live") {
+    // Live 模式：不需要澄清，直接用空的 clarifications 建立契約
+    await goToLiveContract();
+  } else {
+    state.userAnswer = null;
+    await goToContract();
+  }
 });
 
 async function goToContract() {
