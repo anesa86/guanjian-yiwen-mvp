@@ -188,7 +188,6 @@
   
   // ------------------------------------------------------------
   // buildExecutionContractLive：Live 模式專用，純程式整理，不呼叫模型
-  // 這次修正：多帶上 context 原文，讓 execute 時真的有素材可以處理
   // ------------------------------------------------------------
   async function buildExecutionContractLive(taskInput, context, confirmed, clarifications) {
     const confirmedList = confirmed || [];
@@ -250,6 +249,7 @@
     verifyResult: verifyResult,
     verifyResultLive: verifyResultLive,
     IMPACT_THRESHOLD: IMPACT_THRESHOLD,
+    ASPECT_WEIGHTS: ASPECT_WEIGHTS,
   };
   
   })();

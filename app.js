@@ -21,6 +21,7 @@ const executeTaskLive = window.AIService.executeTaskLive;
 const verifyResult = window.AIService.verifyResult;
 const verifyResultLive = window.AIService.verifyResultLive;
 const IMPACT_THRESHOLD = window.AIService.IMPACT_THRESHOLD;
+const ASPECT_WEIGHTS = window.AIService.ASPECT_WEIGHTS;
 
 // 保存這一輪流程的狀態，畫面之間互相傳遞用
 const state = {
@@ -182,7 +183,7 @@ function renderScreen2(analysisResult) {
     // 影響面向的badge
     const aspectsHtml = (u.affectedAspects || [])
       .map((a) => {
-        const weight = { goal: 5, external: 5, strategy: 4, budget: 4, audience: 3, deadline: 3, format: 1 }[a] || 0;
+        const weight = ASPECT_WEIGHTS[a] || 0;
         return `<span class="aspect-tag">${ASPECT_LABELS[a] || a} +${weight}</span>`;
       })
       .join("");
