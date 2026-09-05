@@ -1,12 +1,16 @@
 {
-    "name": "guanjian-yiwen",
-    "version": "1.0.0",
-    "description": "BUILDMODE 2026 Track 3 - Key Question MVP",
-    "main": "server.js",
-    "type": "commonjs",
-    "dependencies": {
-        "@anthropic-ai/sdk": "^0.123.0",
-        "dotenv": "^17.4.2",
-        "express": "^5.2.1"
-    }
+  "name": "guanjian-yiwen",
+  "version": "1.0.0",
+  "description": "BUILDMODE 2026 Track 3 - Key Question MVP",
+  "main": "server.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.123.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "test:api": "node test-api.js"
+  }
 }

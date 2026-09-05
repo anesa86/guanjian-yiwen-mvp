@@ -163,11 +163,11 @@ Prompt 與 deterministic policy 在以下案例測試前已 Freeze，未因個�
 # 1. 安裝依賴
 npm install
 
-# 2. 建立 .env 檔案，內容為：
+# 2. 建立 .env 檔案（可參考 .env.example），內容為：
 ANTHROPIC_API_KEY=你的API金鑰
 
 # 3. 啟動 server
-node server.js
+npm start
 
 # 4. 打開 index.html（直接雙擊，或拖進瀏覽器）
 ```
